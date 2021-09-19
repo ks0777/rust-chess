@@ -3,46 +3,18 @@ use ggez::graphics::Text;
 use ggez::graphics::Color;
 use ggez::input;
 use mint::{Point2, Vector2};
+use std::vec::Vec;
 
-#[derive(Clone, Copy, PartialEq)]
-enum FigureColor {
-    BLACK,
-    WHITE,
-    NONE
-}
-
-#[derive(Clone, Copy, PartialEq)]
-enum FigureType {
-    KING,
-    QUEEN,
-    BISHOP,
-    KNIGHT,
-    ROOK,
-    PAWN,
-    NONE
-}
-
-struct Figure {
-    image: graphics::Image,
-    figure_type: FigureType,
-    figure_color: FigureColor,
-}
-
-#[derive(Clone, Copy)]
-struct Field {
-    figure_type: FigureType,
-    figure_color: FigureColor,
-}
-
-struct Board {
-    fields: [Field; 64],    
-}
+mod engine;
+use engine::calc_legal_moves;
+use engine::models::{Figure, FigureType, FigureColor, Field, Board};
 
 struct State {
     dt: std::time::Duration, 
     board: Board,    
     figures: [Figure; 13],
-    drag_field: i8
+    drag_field: i8,
+    legal_moves: Vec<i8>
 }
 
 impl State {
@@ -98,7 +70,8 @@ impl State {
             dt: std::time::Duration::new(0,0),
             board : board,
             figures: figures,
-            drag_field: -1
+            drag_field: -1,
+            legal_moves: Vec::new()
         };
         Ok(s)
     }
@@ -106,15 +79,19 @@ impl State {
 
 const CHECKER_1: Color = Color{r: 0.431, g: 0.313, b: 0.313, a: 1.0};
 const CHECKER_2: Color = Color{r: 0.878, g: 0.756, b: 0.756, a: 1.0};
+const HIGHLIGHT: Color = Color{r: 0.043, g: 0.530, b: 0.016, a: 0.8};
 
-fn draw_board(ctx: &mut Context, board: &Board, figures: &[Figure; 13], drag_field: i8) {
+fn draw_board(ctx: &mut Context, board: &Board, figures: &[Figure; 13], drag_field: i8, legal_moves: &Vec<i8>) {
         for i in 0..8 {
-           for j in 0..8 {
+            for j in 0..8 {
                 let color = if (i+j) % 2 != 0 { CHECKER_1 } else { CHECKER_2 };
+
+                // draw checkers
                 let rectangle = graphics::Mesh::new_rectangle(ctx, graphics::DrawMode::fill(), graphics::Rect::new(i as f32 * 100.0, j as f32 * 100.0, 100.0, 100.0), color);
                 graphics::draw(ctx, &rectangle.unwrap(), graphics::DrawParam::default()).unwrap();
 
-                let field = &board.fields[i+j*8];
+                // draw figures
+                let field = &board.fields[(i+j*8) as usize];
                 if field.figure_type != FigureType::NONE {
                     for figure in figures {
                         if figure.figure_type == field.figure_type && figure.figure_color == field.figure_color {
@@ -122,7 +99,7 @@ fn draw_board(ctx: &mut Context, board: &Board, figures: &[Figure; 13], drag_fie
                             let mut draw_param = graphics::DrawParam::default().dest(figure_dst).scale(Vector2{x: 0.09765625, y: 0.09765625});
 
                             // draw shadow for dragged figure
-                            if i + j*8 == drag_field as usize {
+                            if i + j*8 == drag_field {
                                 draw_param = draw_param.color(Color::from_rgba(0,0,0,160));
                             }
 
@@ -130,7 +107,14 @@ fn draw_board(ctx: &mut Context, board: &Board, figures: &[Figure; 13], drag_fie
                         }
                     }
                 }
-           } 
+
+                // highlight legal moves
+                if legal_moves.contains(&(i + j*8)) { 
+                    let circle_highlight = graphics::Mesh::new_circle(ctx, graphics::DrawMode::fill(), [i as f32 * 100.0 + 50.0, j as f32 * 100.0 + 50.0 ], 20.0, 0.01, HIGHLIGHT);
+                    graphics::draw(ctx, &circle_highlight.unwrap(), graphics::DrawParam::default()).unwrap();
+                }
+
+            } 
         }
 }
 
@@ -160,14 +144,13 @@ impl ggez::event::EventHandler<GameError> for State {
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
         graphics::clear(ctx, Color::BLACK);
 
-
-        draw_board(ctx, &self.board, &self.figures, self.drag_field);
+        draw_board(ctx, &self.board, &self.figures, self.drag_field, &self.legal_moves);
 
         draw_floating_figure(ctx, &self.board, &self.figures, self.drag_field);
 
-        let text = Text::new(format!("{} FPS", 1000 / self.dt.as_millis()));
-        let text_dst = Point2 { x: 10.0, y: 10.0};
-        graphics::draw(ctx, &text, graphics::DrawParam::default().dest(text_dst))?;
+        let text = Text::new(format!("{} FPS", 1000000000 / self.dt.as_nanos()));
+        let text_dst = Point2 { x: 5.0, y: 5.0};
+        graphics::draw(ctx, &text, graphics::DrawParam::default().dest(text_dst).color(Color::BLACK))?;
 
 
         graphics::present(ctx)?;
@@ -184,6 +167,8 @@ impl ggez::event::EventHandler<GameError> for State {
         let drag_field = (((x as i32 - (x as i32 % 100)) / 100) + ((y as i32 - (y as i32 % 100)) / 100) * 8) as i8;
         if self.board.fields[drag_field as usize].figure_type != FigureType::NONE {
             self.drag_field = drag_field;
+
+            self.legal_moves = calc_legal_moves(drag_field, &self.board);
         }
     }
 
@@ -196,14 +181,15 @@ impl ggez::event::EventHandler<GameError> for State {
     ) {
         if self.drag_field == -1 { return; }
 
-        let target_field = ((x as i32 - (x as i32 % 100)) / 100) + ((y as i32 - (y as i32 % 100)) / 100) * 8;
+        let target_field = (((x as i32 - (x as i32 % 100)) / 100) + ((y as i32 - (y as i32 % 100)) / 100) * 8) as i8;
         
-        if self.drag_field != target_field as i8 {
+        if self.legal_moves.contains(&target_field) {
             self.board.fields[target_field as usize] = self.board.fields[self.drag_field as usize];
             self.board.fields[self.drag_field as usize] = Field { figure_type: FigureType::NONE, figure_color: FigureColor::NONE };
         }
         
         self.drag_field = -1;
+        self.legal_moves = Vec::new();
     }
 
 }
