@@ -13,7 +13,7 @@ struct State {
     dt: std::time::Duration, 
     board: Board,    
     figures: [Figure; 13],
-    drag_field: i8,
+    source_field_index: i8,
     legal_moves: Vec<i8>
 }
 
@@ -70,7 +70,7 @@ impl State {
             dt: std::time::Duration::new(0,0),
             board : board,
             figures: figures,
-            drag_field: -1,
+            source_field_index: -1,
             legal_moves: Vec::new()
         };
         Ok(s)
@@ -81,7 +81,7 @@ const CHECKER_1: Color = Color{r: 0.431, g: 0.313, b: 0.313, a: 1.0};
 const CHECKER_2: Color = Color{r: 0.878, g: 0.756, b: 0.756, a: 1.0};
 const HIGHLIGHT: Color = Color{r: 0.043, g: 0.530, b: 0.016, a: 0.8};
 
-fn draw_board(ctx: &mut Context, board: &Board, figures: &[Figure; 13], drag_field: i8, legal_moves: &Vec<i8>) {
+fn draw_board(ctx: &mut Context, board: &Board, figures: &[Figure; 13], source_field_index: i8, legal_moves: &Vec<i8>) {
         for i in 0..8 {
             for j in 0..8 {
                 let color = if (i+j) % 2 != 0 { CHECKER_1 } else { CHECKER_2 };
@@ -89,6 +89,12 @@ fn draw_board(ctx: &mut Context, board: &Board, figures: &[Figure; 13], drag_fie
                 // draw checkers
                 let rectangle = graphics::Mesh::new_rectangle(ctx, graphics::DrawMode::fill(), graphics::Rect::new(i as f32 * 100.0, j as f32 * 100.0, 100.0, 100.0), color);
                 graphics::draw(ctx, &rectangle.unwrap(), graphics::DrawParam::default()).unwrap();
+
+                let field = &board.fields[(i+j*8) as usize];
+                if field.dirty {
+                        let rectangle = graphics::Mesh::new_rectangle(ctx, graphics::DrawMode::fill(), graphics::Rect::new(i as f32 * 100.0, j as f32 * 100.0, 100.0, 100.0), HIGHLIGHT);
+                        graphics::draw(ctx, &rectangle.unwrap(), graphics::DrawParam::default()).unwrap();
+                }
 
                 // draw figures
                 let field = &board.fields[(i+j*8) as usize];
@@ -99,7 +105,7 @@ fn draw_board(ctx: &mut Context, board: &Board, figures: &[Figure; 13], drag_fie
                             let mut draw_param = graphics::DrawParam::default().dest(figure_dst).scale(Vector2{x: 0.09765625, y: 0.09765625});
 
                             // draw shadow for dragged figure
-                            if i + j*8 == drag_field {
+                            if i + j*8 == source_field_index {
                                 draw_param = draw_param.color(Color::from_rgba(0,0,0,160));
                             }
 
@@ -118,10 +124,10 @@ fn draw_board(ctx: &mut Context, board: &Board, figures: &[Figure; 13], drag_fie
         }
 }
 
-fn draw_floating_figure(ctx: &mut Context, board: &Board, figures: &[Figure; 13], drag_field: i8) {
-    if drag_field != -1 {
+fn draw_floating_figure(ctx: &mut Context, board: &Board, figures: &[Figure; 13], source_field_index: i8) {
+    if source_field_index != -1 {
         input::mouse::set_cursor_hidden(ctx, true);
-        let field = &board.fields[drag_field as usize];    
+        let field = &board.fields[source_field_index as usize];    
         for figure in figures {
             if figure.figure_type == field.figure_type && figure.figure_color == field.figure_color {
                 let mut mouse_position = input::mouse::position(ctx);
@@ -144,9 +150,9 @@ impl ggez::event::EventHandler<GameError> for State {
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
         graphics::clear(ctx, Color::BLACK);
 
-        draw_board(ctx, &self.board, &self.figures, self.drag_field, &self.legal_moves);
+        draw_board(ctx, &self.board, &self.figures, self.source_field_index, &self.legal_moves);
 
-        draw_floating_figure(ctx, &self.board, &self.figures, self.drag_field);
+        draw_floating_figure(ctx, &self.board, &self.figures, self.source_field_index);
 
         let text = Text::new(format!("{} FPS", 1000000000 / self.dt.as_nanos()));
         let text_dst = Point2 { x: 5.0, y: 5.0};
@@ -164,11 +170,10 @@ impl ggez::event::EventHandler<GameError> for State {
         x: f32,
         y: f32,
     ) {
-        let drag_field = (((x as i32 - (x as i32 % 100)) / 100) + ((y as i32 - (y as i32 % 100)) / 100) * 8) as i8;
-        if self.board.fields[drag_field as usize].figure_type != FigureType::NONE {
-            self.drag_field = drag_field;
-
-            self.legal_moves = calc_legal_moves(drag_field, &self.board);
+        let source_field_index = (((x as i32 - (x as i32 % 100)) / 100) + ((y as i32 - (y as i32 % 100)) / 100) * 8) as i8;
+        if self.board.fields[source_field_index as usize].figure_type != FigureType::NONE {
+            self.source_field_index = source_field_index;
+            self.legal_moves = calc_legal_moves(source_field_index, &self.board);
         }
     }
 
@@ -179,17 +184,34 @@ impl ggez::event::EventHandler<GameError> for State {
         x: f32,
         y: f32,
     ) {
-        if self.drag_field == -1 { return; }
+        if self.source_field_index == -1 { return; }
+        let source_field = self.board.fields[self.source_field_index as usize];
 
-        let target_field = (((x as i32 - (x as i32 % 100)) / 100) + ((y as i32 - (y as i32 % 100)) / 100) * 8) as i8;
-        
-        if self.legal_moves.contains(&target_field) {
-            self.board.fields[target_field as usize] = self.board.fields[self.drag_field as usize];
-            self.board.fields[self.drag_field as usize] = Field { figure_type: FigureType::NONE, figure_color: FigureColor::NONE, dirty: true };
-            
+        let target_field_index = (((x as i32 - (x as i32 % 100)) / 100) + ((y as i32 - (y as i32 % 100)) / 100) * 8) as i8;
+        let target_field = self.board.fields[target_field_index as usize];
+         
+        if self.legal_moves.contains(&target_field_index) {
+            if source_field.figure_type == FigureType::KING && target_field.figure_type == FigureType::ROOK {
+                // Castle
+
+                let side = if target_field_index % 8 != 0 { 1 } else { -1 };
+                self.board.fields[self.source_field_index as usize] = Field { figure_type: FigureType::NONE, figure_color: FigureColor::NONE, dirty: false }; 
+                self.board.fields[target_field_index as usize] = Field { figure_type: FigureType::NONE, figure_color: FigureColor::NONE, dirty: false }; 
+                self.board.fields[(self.source_field_index + 1*side) as usize] = Field { figure_type: FigureType::ROOK, figure_color: source_field.figure_color, dirty: true }; 
+                self.board.fields[(self.source_field_index + 2*side) as usize] = Field { figure_type: FigureType::KING, figure_color: source_field.figure_color, dirty: true }; 
+            } else if source_field.figure_type == FigureType::PAWN && target_field_index < 8 || target_field_index > 56 {
+                // Promotion
+
+                self.board.fields[target_field_index as usize] = Field { figure_type: FigureType::QUEEN, figure_color: source_field.figure_color, dirty: true };
+                self.board.fields[self.source_field_index as usize] = Field { figure_type: FigureType::NONE, figure_color: FigureColor::NONE, dirty: false }; 
+            } else {
+                self.board.fields[target_field_index as usize] = self.board.fields[self.source_field_index as usize];
+                self.board.fields[target_field_index as usize].dirty = true; 
+                self.board.fields[self.source_field_index as usize] = Field { figure_type: FigureType::NONE, figure_color: FigureColor::NONE, dirty: false }; 
+            }
         }
         
-        self.drag_field = -1;
+        self.source_field_index = -1;
         self.legal_moves = Vec::new();
     }
 

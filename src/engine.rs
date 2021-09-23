@@ -27,20 +27,36 @@ fn calc_reachable_fields(src_field: i8, board: &Board) -> Vec<i8> {
                     }
                 }
             }
+
+            // Castle
+            let i = if field.figure_color == FigureColor::BLACK { 0 } else { 1 };
+            if src_field != 4+i*56 || field.dirty { return vec; }
+            for corner_index in [i*56, i*56+7].iter() {
+                let corner_field = board.fields[*corner_index as usize];
+                if corner_field.dirty || corner_field.figure_type != FigureType::ROOK { continue; }
+
+                let dx_range = if corner_index % 8 == 0 { vec![-1,-2,-3] } else { vec![1,2] };
+
+                let mut obstacle = false;
+                for dx in dx_range { 
+                    if is_occupied(x+dx, y, board) != FigureColor::NONE { obstacle = true; break; } 
+                }
+                if !obstacle { vec.push(*corner_index); }
+            }
         },
         FigureType::PAWN => {
             let dy = if field.figure_color == FigureColor::WHITE { 1 } else { -1 };
             if is_occupied(x, y-dy, board) == FigureColor::NONE {
                 vec.push(x + (y-dy)*8);
             }
-            if is_occupied(x, y-dy*2, board) == FigureColor::NONE && !field.dirty {
+            if !field.dirty && is_occupied(x, y-dy*2, board) == FigureColor::NONE {
                 vec.push(x + (y-dy*2)*8);
             }
-            if !(is_occupied(x+1, y-dy, board) == FigureColor::NONE) || is_occupied(x+1, y-dy, board) == field.figure_color {
-                vec.push(x+1 + (y-dy)*8);
-            }
-            if !(is_occupied(x-1, y-dy, board) == FigureColor::NONE) || is_occupied(x-1, y-dy, board) == field.figure_color {
-                vec.push(x-1 + (y-dy)*8);
+            for dx in [-1, 1].iter() {
+                let occupation = is_occupied(x+dx, y-dy, board);
+                if !(occupation == FigureColor::NONE) && occupation != field.figure_color {
+                    vec.push(x+dx + (y-dy)*8);
+                }
             }
         },
         FigureType::KNIGHT => {
