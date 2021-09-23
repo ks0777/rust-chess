@@ -28,6 +28,7 @@ pub struct Figure {
 pub struct Field {
     pub figure_type: FigureType,
     pub figure_color: FigureColor,
+    pub dirty: bool
 }
 
 pub struct Board {

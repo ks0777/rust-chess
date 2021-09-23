@@ -38,31 +38,31 @@ impl State {
         println!("done!");
 
         // Set up board
-        let mut board: Board = Board { fields: [Field {figure_type: FigureType::NONE, figure_color: FigureColor::NONE}; 64] };
+        let mut board: Board = Board { fields: [Field {figure_type: FigureType::NONE, figure_color: FigureColor::NONE, dirty: false}; 64] };
 
-        board.fields[0] = Field {figure_type: FigureType::ROOK, figure_color: FigureColor::BLACK};
-        board.fields[1] = Field {figure_type: FigureType::KNIGHT, figure_color: FigureColor::BLACK};
-        board.fields[2] = Field {figure_type: FigureType::BISHOP, figure_color: FigureColor::BLACK};
-        board.fields[3] = Field {figure_type: FigureType::QUEEN, figure_color: FigureColor::BLACK};
-        board.fields[4] = Field {figure_type: FigureType::KING, figure_color: FigureColor::BLACK};
-        board.fields[5] = Field {figure_type: FigureType::BISHOP, figure_color: FigureColor::BLACK};
-        board.fields[6] = Field {figure_type: FigureType::KNIGHT, figure_color: FigureColor::BLACK};
-        board.fields[7] = Field {figure_type: FigureType::ROOK, figure_color: FigureColor::BLACK};
+        board.fields[0] = Field {figure_type: FigureType::ROOK, figure_color: FigureColor::BLACK, dirty: false};
+        board.fields[1] = Field {figure_type: FigureType::KNIGHT, figure_color: FigureColor::BLACK, dirty: false};
+        board.fields[2] = Field {figure_type: FigureType::BISHOP, figure_color: FigureColor::BLACK, dirty: false};
+        board.fields[3] = Field {figure_type: FigureType::QUEEN, figure_color: FigureColor::BLACK, dirty: false};
+        board.fields[4] = Field {figure_type: FigureType::KING, figure_color: FigureColor::BLACK, dirty: false};
+        board.fields[5] = Field {figure_type: FigureType::BISHOP, figure_color: FigureColor::BLACK, dirty: false};
+        board.fields[6] = Field {figure_type: FigureType::KNIGHT, figure_color: FigureColor::BLACK, dirty: false};
+        board.fields[7] = Field {figure_type: FigureType::ROOK, figure_color: FigureColor::BLACK, dirty: false};
 
-        board.fields[56] = Field {figure_type: FigureType::ROOK, figure_color: FigureColor::WHITE};
-        board.fields[57] = Field {figure_type: FigureType::KNIGHT, figure_color: FigureColor::WHITE};
-        board.fields[58] = Field {figure_type: FigureType::BISHOP, figure_color: FigureColor::WHITE};
-        board.fields[59] = Field {figure_type: FigureType::QUEEN, figure_color: FigureColor::WHITE};
-        board.fields[60] = Field {figure_type: FigureType::KING, figure_color: FigureColor::WHITE};
-        board.fields[61] = Field {figure_type: FigureType::BISHOP, figure_color: FigureColor::WHITE};
-        board.fields[62] = Field {figure_type: FigureType::KNIGHT, figure_color: FigureColor::WHITE};
-        board.fields[63] = Field {figure_type: FigureType::ROOK, figure_color: FigureColor::WHITE};
+        board.fields[56] = Field {figure_type: FigureType::ROOK, figure_color: FigureColor::WHITE, dirty: false};
+        board.fields[57] = Field {figure_type: FigureType::KNIGHT, figure_color: FigureColor::WHITE, dirty: false};
+        board.fields[58] = Field {figure_type: FigureType::BISHOP, figure_color: FigureColor::WHITE, dirty: false};
+        board.fields[59] = Field {figure_type: FigureType::QUEEN, figure_color: FigureColor::WHITE, dirty: false};
+        board.fields[60] = Field {figure_type: FigureType::KING, figure_color: FigureColor::WHITE, dirty: false};
+        board.fields[61] = Field {figure_type: FigureType::BISHOP, figure_color: FigureColor::WHITE, dirty: false};
+        board.fields[62] = Field {figure_type: FigureType::KNIGHT, figure_color: FigureColor::WHITE, dirty: false};
+        board.fields[63] = Field {figure_type: FigureType::ROOK, figure_color: FigureColor::WHITE, dirty: false};
 
         for i in 8..16 {
-            board.fields[i] = Field {figure_type: FigureType::PAWN, figure_color: FigureColor::BLACK};
+            board.fields[i] = Field {figure_type: FigureType::PAWN, figure_color: FigureColor::BLACK, dirty: false};
         }
         for i in 48..56 {
-            board.fields[i] = Field {figure_type: FigureType::PAWN, figure_color: FigureColor::WHITE};
+            board.fields[i] = Field {figure_type: FigureType::PAWN, figure_color: FigureColor::WHITE, dirty: false};
         }
 
 
@@ -185,7 +185,8 @@ impl ggez::event::EventHandler<GameError> for State {
         
         if self.legal_moves.contains(&target_field) {
             self.board.fields[target_field as usize] = self.board.fields[self.drag_field as usize];
-            self.board.fields[self.drag_field as usize] = Field { figure_type: FigureType::NONE, figure_color: FigureColor::NONE };
+            self.board.fields[self.drag_field as usize] = Field { figure_type: FigureType::NONE, figure_color: FigureColor::NONE, dirty: true };
+            
         }
         
         self.drag_field = -1;
