@@ -31,6 +31,7 @@ pub struct Field {
     pub dirty: bool
 }
 
+#[derive(Clone, Copy)]
 pub struct Board {
     pub fields: [Field; 64],    
 }

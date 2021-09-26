@@ -7,6 +7,7 @@ use std::vec::Vec;
 
 mod engine;
 use engine::calc_legal_moves;
+use engine::play_move;
 use engine::models::{Figure, FigureType, FigureColor, Field, Board};
 
 struct State {
@@ -185,30 +186,29 @@ impl ggez::event::EventHandler<GameError> for State {
         y: f32,
     ) {
         if self.source_field_index == -1 { return; }
-        let source_field = self.board.fields[self.source_field_index as usize];
 
         let target_field_index = (((x as i32 - (x as i32 % 100)) / 100) + ((y as i32 - (y as i32 % 100)) / 100) * 8) as i8;
-        let target_field = self.board.fields[target_field_index as usize];
          
         if self.legal_moves.contains(&target_field_index) {
-            if source_field.figure_type == FigureType::KING && target_field.figure_type == FigureType::ROOK {
-                // Castle
-
-                let side = if target_field_index % 8 != 0 { 1 } else { -1 };
-                self.board.fields[self.source_field_index as usize] = Field { figure_type: FigureType::NONE, figure_color: FigureColor::NONE, dirty: false }; 
-                self.board.fields[target_field_index as usize] = Field { figure_type: FigureType::NONE, figure_color: FigureColor::NONE, dirty: false }; 
-                self.board.fields[(self.source_field_index + 1*side) as usize] = Field { figure_type: FigureType::ROOK, figure_color: source_field.figure_color, dirty: true }; 
-                self.board.fields[(self.source_field_index + 2*side) as usize] = Field { figure_type: FigureType::KING, figure_color: source_field.figure_color, dirty: true }; 
-            } else if source_field.figure_type == FigureType::PAWN && target_field_index < 8 || target_field_index > 56 {
-                // Promotion
-
-                self.board.fields[target_field_index as usize] = Field { figure_type: FigureType::QUEEN, figure_color: source_field.figure_color, dirty: true };
-                self.board.fields[self.source_field_index as usize] = Field { figure_type: FigureType::NONE, figure_color: FigureColor::NONE, dirty: false }; 
-            } else {
-                self.board.fields[target_field_index as usize] = self.board.fields[self.source_field_index as usize];
-                self.board.fields[target_field_index as usize].dirty = true; 
-                self.board.fields[self.source_field_index as usize] = Field { figure_type: FigureType::NONE, figure_color: FigureColor::NONE, dirty: false }; 
-            }
+            play_move(self.source_field_index, target_field_index, &mut self.board);
+//            if source_field.figure_type == FigureType::KING && target_field.figure_type == FigureType::ROOK {
+//                // Castle
+//
+//                let side = if target_field_index % 8 != 0 { 1 } else { -1 };
+//                self.board.fields[self.source_field_index as usize] = Field { figure_type: FigureType::NONE, figure_color: FigureColor::NONE, dirty: false }; 
+//                self.board.fields[target_field_index as usize] = Field { figure_type: FigureType::NONE, figure_color: FigureColor::NONE, dirty: false }; 
+//                self.board.fields[(self.source_field_index + 1*side) as usize] = Field { figure_type: FigureType::ROOK, figure_color: source_field.figure_color, dirty: true }; 
+//                self.board.fields[(self.source_field_index + 2*side) as usize] = Field { figure_type: FigureType::KING, figure_color: source_field.figure_color, dirty: true }; 
+//            } else if source_field.figure_type == FigureType::PAWN && target_field_index < 8 || target_field_index > 56 {
+//                // Promotion
+//
+//                self.board.fields[target_field_index as usize] = Field { figure_type: FigureType::QUEEN, figure_color: source_field.figure_color, dirty: true };
+//                self.board.fields[self.source_field_index as usize] = Field { figure_type: FigureType::NONE, figure_color: FigureColor::NONE, dirty: false }; 
+//            } else {
+//                self.board.fields[target_field_index as usize] = self.board.fields[self.source_field_index as usize];
+//                self.board.fields[target_field_index as usize].dirty = true; 
+//                self.board.fields[self.source_field_index as usize] = Field { figure_type: FigureType::NONE, figure_color: FigureColor::NONE, dirty: false }; 
+//            }
         }
         
         self.source_field_index = -1;
