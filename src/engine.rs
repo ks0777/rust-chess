@@ -7,20 +7,12 @@ fn is_occupied(x: i8, y: i8, board: &Board) -> FigureColor {
     board.fields[(x + y*8) as usize].figure_color
 }
 
-fn is_checked(figure_color: FigureColor, board: Board) -> bool {
-    let mut king_field_index = 0;
+fn is_checked(field_index: i8, figure_color: FigureColor, board: Board) -> bool {
     for i in 0..64 {
         let field = board.fields[i as usize];
-        if field.figure_color == figure_color && field.figure_type == FigureType::KING {
-            king_field_index = i; 
-        }
-    }
-
-    for i in 0..64 {
-        let field = board.fields[i as usize];
-        if field.figure_color != FigureColor::NONE && field.figure_color != figure_color && field.figure_type != FigureType::KING {
+        if field.figure_color != FigureColor::NONE && field.figure_color != figure_color {
             let reachable_fields = calc_reachable_fields(i, &board);
-            if reachable_fields.contains(&king_field_index) { return true; }
+            if reachable_fields.contains(&field_index) { return true; }
         }
     }
 //    for dx in -1..2 {
@@ -44,6 +36,17 @@ fn is_checked(figure_color: FigureColor, board: Board) -> bool {
 //        }
 //    } 
     return false;
+}
+
+fn is_king_checked(figure_color: FigureColor, board: Board) -> bool {
+    let mut king_field_index = 0;
+    for i in 0..64 {
+        let field = board.fields[i as usize];
+        if field.figure_color == figure_color && field.figure_type == FigureType::KING {
+            king_field_index = i; 
+        }
+    }
+    return is_checked(king_field_index, board.fields[king_field_index as usize].figure_color, board);
 }
 
 fn calc_reachable_fields(src_field: i8, board: &Board) -> Vec<i8> {
@@ -80,6 +83,14 @@ fn calc_reachable_fields(src_field: i8, board: &Board) -> Vec<i8> {
                 for dx in dx_range { 
                     if is_occupied(x+dx, y, board) != FigureColor::NONE { obstacle = true; break; } 
                 }
+
+                if !obstacle {
+                    let dx_range = if corner_index % 8 == 0 { vec![0,-1,-2,-3,-4] } else { vec![0,1,2,3] };
+                    for dx in dx_range {
+                        if is_checked(dx + x + y*8, field.figure_color, *board) { obstacle = true; break; }
+                    }
+                }
+
                 if !obstacle { vec.push(*corner_index); }
             }
         },
@@ -171,7 +182,7 @@ fn is_legal(src_field_id: i8, dst_field_id: i8, board: Board) -> bool {
     let mut new_board = board.clone();
     let src_field = board.fields[src_field_id as usize];
     play_move(src_field_id, dst_field_id, &mut new_board);
-    return !is_checked(src_field.figure_color, new_board);
+    return !is_king_checked(src_field.figure_color, new_board);
 }
 
 pub fn calc_legal_moves(src_field: i8, board: &Board) -> Vec<i8> {

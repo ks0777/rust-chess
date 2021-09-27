@@ -191,24 +191,6 @@ impl ggez::event::EventHandler<GameError> for State {
          
         if self.legal_moves.contains(&target_field_index) {
             play_move(self.source_field_index, target_field_index, &mut self.board);
-//            if source_field.figure_type == FigureType::KING && target_field.figure_type == FigureType::ROOK {
-//                // Castle
-//
-//                let side = if target_field_index % 8 != 0 { 1 } else { -1 };
-//                self.board.fields[self.source_field_index as usize] = Field { figure_type: FigureType::NONE, figure_color: FigureColor::NONE, dirty: false }; 
-//                self.board.fields[target_field_index as usize] = Field { figure_type: FigureType::NONE, figure_color: FigureColor::NONE, dirty: false }; 
-//                self.board.fields[(self.source_field_index + 1*side) as usize] = Field { figure_type: FigureType::ROOK, figure_color: source_field.figure_color, dirty: true }; 
-//                self.board.fields[(self.source_field_index + 2*side) as usize] = Field { figure_type: FigureType::KING, figure_color: source_field.figure_color, dirty: true }; 
-//            } else if source_field.figure_type == FigureType::PAWN && target_field_index < 8 || target_field_index > 56 {
-//                // Promotion
-//
-//                self.board.fields[target_field_index as usize] = Field { figure_type: FigureType::QUEEN, figure_color: source_field.figure_color, dirty: true };
-//                self.board.fields[self.source_field_index as usize] = Field { figure_type: FigureType::NONE, figure_color: FigureColor::NONE, dirty: false }; 
-//            } else {
-//                self.board.fields[target_field_index as usize] = self.board.fields[self.source_field_index as usize];
-//                self.board.fields[target_field_index as usize].dirty = true; 
-//                self.board.fields[self.source_field_index as usize] = Field { figure_type: FigureType::NONE, figure_color: FigureColor::NONE, dirty: false }; 
-//            }
         }
         
         self.source_field_index = -1;
