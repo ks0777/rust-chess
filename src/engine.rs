@@ -108,6 +108,9 @@ fn calc_reachable_fields(src_field: i8, board: &Board) -> Vec<i8> {
                     vec.push(x+dx + (y-dy)*8);
                 }
             }
+
+            // en-passant
+
         },
         FigureType::KNIGHT => {
             for dx in -2..3i8 {
