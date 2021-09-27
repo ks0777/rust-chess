@@ -16,7 +16,8 @@ struct State {
     figures: [Figure; 13],
     source_field_index: i8,
     legal_moves: Vec<i8>,
-    next_move: FigureColor
+    next_move: FigureColor,
+    en_passant: i8
 }
 
 impl State {
@@ -75,6 +76,7 @@ impl State {
             source_field_index: -1,
             legal_moves: Vec::new(),
             next_move: FigureColor::WHITE,
+            en_passant: -1
         };
         Ok(s)
     }
@@ -177,7 +179,7 @@ impl ggez::event::EventHandler<GameError> for State {
         let source_field = self.board.fields[source_field_index as usize];
         if source_field.figure_type != FigureType::NONE && source_field.figure_color == self.next_move {
             self.source_field_index = source_field_index;
-            self.legal_moves = calc_legal_moves(source_field_index, &self.board);
+            self.legal_moves = calc_legal_moves(source_field_index, &self.board, &mut self.en_passant);
         }
     }
 
@@ -193,7 +195,7 @@ impl ggez::event::EventHandler<GameError> for State {
         let target_field_index = (((x as i32 - (x as i32 % 100)) / 100) + ((y as i32 - (y as i32 % 100)) / 100) * 8) as i8;
          
         if self.legal_moves.contains(&target_field_index) {
-            play_move(self.source_field_index, target_field_index, &mut self.board);
+            play_move(self.source_field_index, target_field_index, &mut self.board, &mut self.en_passant);
             self.next_move = if self.next_move == FigureColor::WHITE { FigureColor::BLACK } else { FigureColor::WHITE }
         }
         
