@@ -4,6 +4,7 @@ use ggez::graphics::Color;
 use ggez::input;
 use mint::{Point2, Vector2};
 use std::vec::Vec;
+use std::env;
 
 mod engine;
 use engine::calc_legal_moves;
@@ -41,33 +42,15 @@ impl State {
         println!("done!");
 
         // Set up board
-        let mut board: Board = Board { fields: [Field {figure_type: FigureType::NONE, figure_color: FigureColor::NONE, dirty: false}; 64] };
+        let mut en_passant = -1;
+        let mut next_move = FigureColor::NONE;
+        let args: Vec<String> = env::args().collect();
+        let mut board = board_from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq b3 0 1", &mut next_move, &mut en_passant);
 
-        board.fields[0] = Field {figure_type: FigureType::ROOK, figure_color: FigureColor::BLACK, dirty: false};
-        board.fields[1] = Field {figure_type: FigureType::KNIGHT, figure_color: FigureColor::BLACK, dirty: false};
-        board.fields[2] = Field {figure_type: FigureType::BISHOP, figure_color: FigureColor::BLACK, dirty: false};
-        board.fields[3] = Field {figure_type: FigureType::QUEEN, figure_color: FigureColor::BLACK, dirty: false};
-        board.fields[4] = Field {figure_type: FigureType::KING, figure_color: FigureColor::BLACK, dirty: false};
-        board.fields[5] = Field {figure_type: FigureType::BISHOP, figure_color: FigureColor::BLACK, dirty: false};
-        board.fields[6] = Field {figure_type: FigureType::KNIGHT, figure_color: FigureColor::BLACK, dirty: false};
-        board.fields[7] = Field {figure_type: FigureType::ROOK, figure_color: FigureColor::BLACK, dirty: false};
-
-        board.fields[56] = Field {figure_type: FigureType::ROOK, figure_color: FigureColor::WHITE, dirty: false};
-        board.fields[57] = Field {figure_type: FigureType::KNIGHT, figure_color: FigureColor::WHITE, dirty: false};
-        board.fields[58] = Field {figure_type: FigureType::BISHOP, figure_color: FigureColor::WHITE, dirty: false};
-        board.fields[59] = Field {figure_type: FigureType::QUEEN, figure_color: FigureColor::WHITE, dirty: false};
-        board.fields[60] = Field {figure_type: FigureType::KING, figure_color: FigureColor::WHITE, dirty: false};
-        board.fields[61] = Field {figure_type: FigureType::BISHOP, figure_color: FigureColor::WHITE, dirty: false};
-        board.fields[62] = Field {figure_type: FigureType::KNIGHT, figure_color: FigureColor::WHITE, dirty: false};
-        board.fields[63] = Field {figure_type: FigureType::ROOK, figure_color: FigureColor::WHITE, dirty: false};
-
-        for i in 8..16 {
-            board.fields[i] = Field {figure_type: FigureType::PAWN, figure_color: FigureColor::BLACK, dirty: false};
+        // load board from supplied fen
+        if args.len() > 1 {
+            board = board_from_fen(args[1].as_str(), &mut next_move, &mut en_passant);
         }
-        for i in 48..56 {
-            board.fields[i] = Field {figure_type: FigureType::PAWN, figure_color: FigureColor::WHITE, dirty: false};
-        }
-
 
         let s = State {
             dt: std::time::Duration::new(0,0),
@@ -75,11 +58,75 @@ impl State {
             figures: figures,
             source_field_index: -1,
             legal_moves: Vec::new(),
-            next_move: FigureColor::WHITE,
-            en_passant: -1
+            next_move: next_move,
+            en_passant: en_passant
         };
         Ok(s)
     }
+}
+
+fn translate_position_to_index(pos: &str) -> i8 {
+    let pos_chars: Vec<char> = pos.chars().collect();
+    if pos_chars.len() == 2 {
+        let file = (pos_chars[0] as i8) - 97;
+        let rank = 8  - ((pos_chars[1] as i8) - 49);
+        return file * 8 + rank;
+    }
+    return -1;
+}
+
+fn board_from_fen(fen: &str, next_move: &mut FigureColor, en_passant: &mut i8) -> Board {
+    let fen_split: Vec<&str> = fen.split(' ').collect();
+
+    let fen_board = fen_split[0];
+    let fen_active = fen_split[1];
+    let fen_castle = fen_split[2];
+    let fen_en_passant = fen_split[3];
+
+    let mut i = 0;
+    let mut board: Board = Board { fields: [Field {figure_type: FigureType::NONE, figure_color: FigureColor::NONE, dirty: false}; 64] };
+
+    for c in fen_board.chars() {
+        if i > 63 { break; }
+        let color = if c.is_lowercase() { FigureColor::BLACK } else { FigureColor::WHITE };
+        if c.is_digit(10) {
+            let offset = c.to_digit(10);
+            match offset {
+                Some(x) => i += x,
+                _ => ()
+            }
+        } else if c.is_ascii_alphanumeric() { 
+            let figure: Vec<_> = c.to_lowercase().collect();
+            match figure[0] {
+                'k' => board.fields[i as usize] = Field { figure_type: FigureType::KING, figure_color: color, dirty: false },
+                'q' => board.fields[i as usize] = Field { figure_type: FigureType::QUEEN, figure_color: color, dirty: false },
+                'r' => board.fields[i as usize] = Field { figure_type: FigureType::ROOK, figure_color: color, dirty: false },
+                'n' => board.fields[i as usize] = Field { figure_type: FigureType::KNIGHT, figure_color: color, dirty: false },
+                'b' => board.fields[i as usize] = Field { figure_type: FigureType::BISHOP, figure_color: color, dirty: false },
+                'p' => board.fields[i as usize] = Field { figure_type: FigureType::PAWN, figure_color: color, dirty: false },
+                _ => ()
+            }
+            i += 1;
+        }
+    }
+
+    // active color
+    match fen_active {
+        "w" => *next_move = FigureColor::WHITE,
+        "b" => *next_move = FigureColor::BLACK,
+        _ => ()
+    }
+
+    // castle rights
+    if !fen_castle.contains("K") { board.fields[63].dirty = true; }
+    if !fen_castle.contains("Q") { board.fields[56].dirty = true; }
+    if !fen_castle.contains("k") { board.fields[7].dirty = true; }
+    if !fen_castle.contains("q") { board.fields[0].dirty = true; }
+
+    // en passant
+    *en_passant = translate_position_to_index(fen_en_passant);
+
+    return board;
 }
 
 const CHECKER_1: Color = Color{r: 0.431, g: 0.313, b: 0.313, a: 1.0};
