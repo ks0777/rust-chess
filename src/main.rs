@@ -16,6 +16,8 @@ use models::{Figure, FigureType, FigureColor, Field, Board};
 mod utils;
 use utils::board_from_fen;
 
+mod tests;
+
 struct State {
     dt: std::time::Duration, 
     board: Board,    
@@ -50,7 +52,7 @@ impl State {
         let mut en_passant = -1;
         let mut next_move = FigureColor::NONE;
         let args: Vec<String> = env::args().collect();
-        let mut board = board_from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq b3 0 1", &mut next_move, &mut en_passant);
+        let mut board = board_from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", &mut next_move, &mut en_passant);
 
         // load board from supplied fen
         if args.len() > 1 {

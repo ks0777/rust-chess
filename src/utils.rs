@@ -1,13 +1,23 @@
 use crate::models::{Figure, FigureType, FigureColor, Field, Board};
 
-fn translate_position_to_index(pos: &str) -> i8 {
+pub fn translate_position_to_index(pos: &str) -> i8 {
     let pos_chars: Vec<char> = pos.chars().collect();
     if pos_chars.len() == 2 {
         let file = (pos_chars[0] as i8) - 97;
-        let rank = 8  - ((pos_chars[1] as i8) - 49);
-        return file * 8 + rank;
+        let rank = 7 - ((pos_chars[1] as i8) - 49);
+        println!("{} {}", file, rank);
+        return file + rank * 8;
     }
     return -1;
+}
+
+pub fn translate_index_to_position(index: u8) -> String {
+    let mut file = index % 8;
+    let mut rank = (index-file) / 8;
+
+    file += 97;
+    rank = (7 - rank) + 49;
+    return format!("{}{}", file as char, rank as char);
 }
 
 pub fn board_from_fen(fen: &str, next_move: &mut FigureColor, en_passant: &mut i8) -> Board {
