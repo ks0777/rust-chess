@@ -1,7 +1,6 @@
 use std::vec::Vec;
 
-pub mod models;
-use models::{Figure, FigureType, FigureColor, Field, Board};
+use crate::models::{Figure, FigureType, FigureColor, Field, Board};
 
 fn is_occupied(x: i8, y: i8, board: &Board) -> FigureColor {
     board.fields[(x + y*8) as usize].figure_color
