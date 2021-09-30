@@ -42,15 +42,19 @@ mod tests {
             let field = state.board.fields[index];
             if field.figure_color == state.next_move {
                 let legal_moves = calc_legal_moves(index as i8, &state.board, &mut state.en_passant);
-                for m in legal_moves {
-                    let mut state_cpy = state.clone();
-                    state_cpy.next_move = if state_cpy.next_move == FigureColor::WHITE { FigureColor::BLACK } else { FigureColor::WHITE };
-                    play_move(index as i8, m, &mut state_cpy.board, &mut state_cpy.en_passant);
-                    let score = perft_test_rec(&mut state_cpy, depth-1);
-                    if depth == 5 {
-                        println!("{}{}: {}", translate_index_to_position(index as u8), translate_index_to_position(m as u8), score);
+                if depth == 1 {
+                    perft_score += legal_moves.len();
+                } else {
+                    for m in legal_moves {
+                        let mut state_cpy = state.clone();
+                        state_cpy.next_move = if state_cpy.next_move == FigureColor::WHITE { FigureColor::BLACK } else { FigureColor::WHITE };
+                        play_move(index as i8, m, &mut state_cpy.board, &mut state_cpy.en_passant);
+                        let score = perft_test_rec(&mut state_cpy, depth-1);
+                        if depth == 5 {
+                            println!("{}{}: {}", translate_index_to_position(index as u8), translate_index_to_position(m as u8), score);
+                        }
+                        perft_score += score;
                     }
-                    perft_score += score;
                 }
             }
         }
