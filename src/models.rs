@@ -1,13 +1,13 @@
 use ggez::graphics;
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub enum FigureColor {
     BLACK,
     WHITE,
     NONE
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub enum FigureType {
     KING,
     QUEEN,
@@ -24,14 +24,14 @@ pub struct Figure {
     pub figure_color: FigureColor,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Field {
     pub figure_type: FigureType,
     pub figure_color: FigureColor,
     pub dirty: bool
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Board {
     pub fields: [Field; 64],    
 }

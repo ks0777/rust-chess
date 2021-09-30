@@ -77,14 +77,16 @@ fn calc_reachable_fields(src_field: i8, board: &Board, en_passant: i8) -> Vec<i8
             let dy = if field.figure_color == FigureColor::WHITE { 1 } else { -1 };
             if is_occupied(x, y-dy, board) == FigureColor::NONE {
                 vec.push(x + (y-dy)*8);
-            }
-            if !field.dirty && is_occupied(x, y-dy*2, board) == FigureColor::NONE {
-                vec.push(x + (y-dy*2)*8);
+                if (y+dy == 0 || y+dy == 7) && is_occupied(x, y-dy*2, board) == FigureColor::NONE {
+                    vec.push(x + (y-dy*2)*8);
+                }
             }
             for dx in [-1, 1].iter() {
-                let occupation = is_occupied(x+dx, y-dy, board);
-                if (occupation != FigureColor::NONE || (x+dx + (y-dy)*8) == en_passant) && occupation != field.figure_color {
-                    vec.push(x+dx + (y-dy)*8);
+                if x+dx >= 0 && x+dx < 8 {
+                    let occupation = is_occupied(x+dx, y-dy, board);
+                    if (occupation != FigureColor::NONE || (x+dx + (y-dy)*8) == en_passant) && occupation != field.figure_color {
+                        vec.push(x+dx + (y-dy)*8);
+                    }
                 }
             }
         },
@@ -180,14 +182,17 @@ pub fn play_move (source_field_index: i8, target_field_index: i8, board: &mut Bo
     if source_field.figure_type == FigureType::PAWN {
         if (source_field_index - target_field_index).abs() == 16 {
             *en_passant = (target_field_index - source_field_index) / 2 + source_field_index;
-        } else if (source_field_index - target_field_index).abs() != 8 && target_field.figure_type == FigureType::NONE {
-            if source_field.figure_color == FigureColor::WHITE {
-                board.fields[(target_field_index+8) as usize] = Field { figure_type: FigureType::NONE, figure_color: FigureColor::NONE, dirty: false };
-            } else {
-                board.fields[(target_field_index-8) as usize] = Field { figure_type: FigureType::NONE, figure_color: FigureColor::NONE, dirty: false };
+        } else {
+            *en_passant = -1;
+            if (source_field_index - target_field_index).abs() != 8 && target_field.figure_type == FigureType::NONE {
+                if source_field.figure_color == FigureColor::WHITE {
+                    board.fields[(target_field_index+8) as usize] = Field { figure_type: FigureType::NONE, figure_color: FigureColor::NONE, dirty: false };
+                } else {
+                    board.fields[(target_field_index-8) as usize] = Field { figure_type: FigureType::NONE, figure_color: FigureColor::NONE, dirty: false };
+                }
             }
         }
-    }
+    } else { *en_passant = -1; }
 
     if source_field.figure_type == FigureType::KING && target_field.figure_type == FigureType::ROOK {
         // Castle
