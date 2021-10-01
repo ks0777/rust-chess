@@ -52,7 +52,8 @@ impl State {
         let mut en_passant = -1;
         let mut next_move = FigureColor::NONE;
         let args: Vec<String> = env::args().collect();
-        let mut board = board_from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", &mut next_move, &mut en_passant);
+        //let mut board = board_from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", &mut next_move, &mut en_passant);
+        let mut board = board_from_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", &mut next_move, &mut en_passant);
 
         // load board from supplied fen
         if args.len() > 1 {

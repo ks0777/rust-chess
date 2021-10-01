@@ -5,7 +5,6 @@ pub fn translate_position_to_index(pos: &str) -> i8 {
     if pos_chars.len() == 2 {
         let file = (pos_chars[0] as i8) - 97;
         let rank = 7 - ((pos_chars[1] as i8) - 49);
-        println!("{} {}", file, rank);
         return file + rank * 8;
     }
     return -1;

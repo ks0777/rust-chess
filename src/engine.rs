@@ -10,14 +10,14 @@ fn is_checked(field_index: i8, figure_color: FigureColor, board: Board) -> bool 
     for i in 0..64 {
         let field = board.fields[i as usize];
         if field.figure_color != FigureColor::NONE && field.figure_color != figure_color {
-            let reachable_fields = calc_reachable_fields(i, &board, -1);
+            let reachable_fields = calc_reachable_fields(i, &board, -1, false);
             if reachable_fields.contains(&field_index) { return true; }
         }
     }
     return false;
 }
 
-fn is_king_checked(figure_color: FigureColor, board: Board) -> bool {
+pub fn is_king_checked(figure_color: FigureColor, board: Board) -> bool {
     let mut king_field_index = 0;
     for i in 0..64 {
         let field = board.fields[i as usize];
@@ -28,7 +28,7 @@ fn is_king_checked(figure_color: FigureColor, board: Board) -> bool {
     return is_checked(king_field_index, board.fields[king_field_index as usize].figure_color, board);
 }
 
-fn calc_reachable_fields(src_field: i8, board: &Board, en_passant: i8) -> Vec<i8> {
+pub fn calc_reachable_fields(src_field: i8, board: &Board, en_passant: i8, check: bool) -> Vec<i8> {
     let mut vec = Vec::new();
 
     let field = &board.fields[src_field as usize];
@@ -64,9 +64,9 @@ fn calc_reachable_fields(src_field: i8, board: &Board, en_passant: i8) -> Vec<i8
                 }
 
                 if !obstacle {
-                    let dx_range = if corner_index % 8 == 0 { vec![0,-1,-2,-3,-4] } else { vec![0,1,2,3] };
+                    let dx_range = if corner_index % 8 == 0 { vec![0,-1,-2] } else { vec![0,1,2] };
                     for dx in dx_range {
-                        if is_checked(dx + x + y*8, field.figure_color, *board) { obstacle = true; break; }
+                        if check && is_checked(dx + x + y*8, field.figure_color, *board) { obstacle = true; break; }
                     }
                 }
 
@@ -167,7 +167,7 @@ fn is_legal(src_field_id: i8, dst_field_id: i8, board: Board, en_passant: i8) ->
 }
 
 pub fn calc_legal_moves(src_field: i8, board: &Board, en_passant: &mut i8) -> Vec<i8> {
-    let mut reachable_fields = calc_reachable_fields(src_field, board, *en_passant);
+    let mut reachable_fields = calc_reachable_fields(src_field, board, *en_passant, true);
 
     reachable_fields = reachable_fields.into_iter().filter(|field_id| is_legal(src_field, *field_id, *board, *en_passant)).collect();
 
