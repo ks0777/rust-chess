@@ -1,5 +1,6 @@
 use std::vec::Vec;
 
+use crate::utils::translate_index_to_position;
 use crate::models::{Figure, FigureType, FigureColor, Field, Board};
 
 fn is_occupied(x: i8, y: i8, board: &Board) -> FigureColor {
@@ -11,7 +12,8 @@ fn is_checked(field_index: i8, figure_color: FigureColor, board: Board) -> bool 
         let field = board.fields[i as usize];
         if field.figure_color != FigureColor::NONE && field.figure_color != figure_color {
             let reachable_fields = calc_reachable_fields(i, &board, -1, false);
-            if reachable_fields.contains(&field_index) { return true; }
+            let checking_field: Vec<&(i8, FigureType)> = reachable_fields.iter().filter(|field| field.0 == field_index).collect();
+            if checking_field.len() > 0 { return true; }
         }
     }
     return false;
@@ -28,7 +30,7 @@ pub fn is_king_checked(figure_color: FigureColor, board: Board) -> bool {
     return is_checked(king_field_index, board.fields[king_field_index as usize].figure_color, board);
 }
 
-pub fn calc_reachable_fields(src_field: i8, board: &Board, en_passant: i8, check: bool) -> Vec<i8> {
+pub fn calc_reachable_fields(src_field: i8, board: &Board, en_passant: i8, check: bool) -> Vec<(i8, FigureType)> {
     let mut vec = Vec::new();
 
     let field = &board.fields[src_field as usize];
@@ -44,7 +46,7 @@ pub fn calc_reachable_fields(src_field: i8, board: &Board, en_passant: i8, check
 
                     if dx + x >= 0 && dx + x < 8 && dy + y >= 0 && dy + y < 8 {
                         if is_occupied(dx + x, dy + y, board) == field.figure_color { continue; }
-                        vec.push(dx + x + ((dy + y) * 8));
+                        vec.push((dx + x + ((dy + y) * 8), FigureType::NONE));
                     }
                 }
             }
@@ -70,22 +72,37 @@ pub fn calc_reachable_fields(src_field: i8, board: &Board, en_passant: i8, check
                     }
                 }
 
-                if !obstacle { vec.push(*corner_index); }
+                if !obstacle { vec.push((*corner_index, FigureType::NONE)); }
             }
         },
         FigureType::PAWN => {
             let dy = if field.figure_color == FigureColor::WHITE { 1 } else { -1 };
             if is_occupied(x, y-dy, board) == FigureColor::NONE {
-                vec.push(x + (y-dy)*8);
+                if y-dy == 0 || y-dy == 7 {
+                    vec.push((x + (y-dy)*8, FigureType::KNIGHT));
+                    vec.push((x + (y-dy)*8, FigureType::BISHOP));
+                    vec.push((x + (y-dy)*8, FigureType::ROOK));
+                    vec.push((x + (y-dy)*8, FigureType::QUEEN));
+                } else {
+                    vec.push((x + (y-dy)*8, FigureType::NONE));
+                }
+
                 if (y+dy == 0 || y+dy == 7) && is_occupied(x, y-dy*2, board) == FigureColor::NONE {
-                    vec.push(x + (y-dy*2)*8);
+                    vec.push((x + (y-dy*2)*8, FigureType::NONE));
                 }
             }
             for dx in [-1, 1].iter() {
                 if x+dx >= 0 && x+dx < 8 {
                     let occupation = is_occupied(x+dx, y-dy, board);
                     if (occupation != FigureColor::NONE || (x+dx + (y-dy)*8) == en_passant) && occupation != field.figure_color {
-                        vec.push(x+dx + (y-dy)*8);
+                        if y-dy == 0 || y-dy == 7 {
+                            vec.push((x+dx + (y-dy)*8, FigureType::KNIGHT));
+                            vec.push((x+dx + (y-dy)*8, FigureType::BISHOP));
+                            vec.push((x+dx + (y-dy)*8, FigureType::ROOK));
+                            vec.push((x+dx + (y-dy)*8, FigureType::QUEEN));
+                        } else {
+                            vec.push((x+dx + (y-dy)*8, FigureType::NONE));
+                        }
                     }
                 }
             }
@@ -96,7 +113,7 @@ pub fn calc_reachable_fields(src_field: i8, board: &Board, en_passant: i8, check
                     if dy.abs() + dx.abs() == 3 {
                         if dx + x >= 0 && dx + x < 8 && dy + y >= 0 && dy + y < 8 {
                             if is_occupied(dx + x, dy + y, board) == field.figure_color { continue; }
-                            vec.push(dx + x + ((dy + y) * 8));
+                            vec.push((dx + x + ((dy + y) * 8), FigureType::NONE));
                         }
                     }
                 }
@@ -110,10 +127,10 @@ pub fn calc_reachable_fields(src_field: i8, board: &Board, en_passant: i8, check
                         if dx*i + x >= 0 && dx*i + x < 8 && dy*i + y >= 0 && dy*i + y < 8 {
                             if is_occupied(dx*i + x, dy*i + y, board) == field.figure_color { break; }
                             if is_occupied(dx*i + x, dy*i + y, board) != FigureColor::NONE { 
-                                vec.push(dx*i + x + ((dy*i + y) * 8));
+                                vec.push((dx*i + x + ((dy*i + y) * 8), FigureType::NONE));
                                 break;
                             }
-                            vec.push(dx*i + x + ((dy*i + y) * 8));
+                            vec.push((dx*i + x + ((dy*i + y) * 8), FigureType::NONE));
                         }
                     }
                 }
@@ -127,10 +144,10 @@ pub fn calc_reachable_fields(src_field: i8, board: &Board, en_passant: i8, check
                         if dx*i + x >= 0 && dx*i + x < 8 && dy*i + y >= 0 && dy*i + y < 8 {
                             if is_occupied(dx*i + x, dy*i + y, board) == field.figure_color { break; }
                             if is_occupied(dx*i + x, dy*i + y, board) != FigureColor::NONE { 
-                                vec.push(dx*i + x + ((dy*i + y) * 8));
+                                vec.push((dx*i + x + ((dy*i + y) * 8), FigureType::NONE));
                                 break;
                             }
-                            vec.push(dx*i + x + ((dy*i + y) * 8));
+                            vec.push((dx*i + x + ((dy*i + y) * 8), FigureType::NONE));
                         }
                     }
                 }
@@ -144,37 +161,38 @@ pub fn calc_reachable_fields(src_field: i8, board: &Board, en_passant: i8, check
                         if dx*i + x >= 0 && dx*i + x < 8 && dy*i + y >= 0 && dy*i + y < 8 {
                             if is_occupied(dx*i + x, dy*i + y, board) == field.figure_color { break; }
                             if is_occupied(dx*i + x, dy*i + y, board) != FigureColor::NONE { 
-                                vec.push(dx*i + x + ((dy*i + y) * 8));
+                                vec.push((dx*i + x + ((dy*i + y) * 8), FigureType::NONE));
                                 break;
                             }
-                            vec.push(dx*i + x + ((dy*i + y) * 8));
+                            vec.push((dx*i + x + ((dy*i + y) * 8), FigureType::NONE));
                         }
                     }
                 }
             }            
         }
-        _ => vec.push(0)
+        _ => vec.push((-1, FigureType::NONE))
     }
 
     vec
 }
 
-fn is_legal(src_field_id: i8, dst_field_id: i8, board: Board, en_passant: i8) -> bool {
+fn is_legal(src_field_id: i8, target_move: (i8, FigureType), board: Board, en_passant: i8) -> bool {
     let mut new_board = board.clone();
     let src_field = board.fields[src_field_id as usize];
-    play_move(src_field_id, dst_field_id, &mut new_board, &mut en_passant.clone());
+    play_move(src_field_id, target_move, &mut new_board, &mut en_passant.clone());
     return !is_king_checked(src_field.figure_color, new_board);
 }
 
-pub fn calc_legal_moves(src_field: i8, board: &Board, en_passant: &mut i8) -> Vec<i8> {
+pub fn calc_legal_moves(src_field: i8, board: &Board, en_passant: &mut i8) -> Vec<(i8, FigureType)> {
     let mut reachable_fields = calc_reachable_fields(src_field, board, *en_passant, true);
 
-    reachable_fields = reachable_fields.into_iter().filter(|field_id| is_legal(src_field, *field_id, *board, *en_passant)).collect();
+    reachable_fields = reachable_fields.into_iter().filter(|field| is_legal(src_field, *field, *board, *en_passant)).collect();
 
     return reachable_fields;
 }
 
-pub fn play_move (source_field_index: i8, target_field_index: i8, board: &mut Board, en_passant: &mut i8) {
+pub fn play_move (source_field_index: i8, target_move: (i8, FigureType), board: &mut Board, en_passant: &mut i8) {
+    let target_field_index = target_move.0;
     let source_field = board.fields[source_field_index as usize];
     let target_field = board.fields[target_field_index as usize];
 
@@ -194,7 +212,7 @@ pub fn play_move (source_field_index: i8, target_field_index: i8, board: &mut Bo
         }
     } else { *en_passant = -1; }
 
-    if source_field.figure_type == FigureType::KING && target_field.figure_type == FigureType::ROOK {
+    if source_field.figure_type == FigureType::KING && target_field.figure_type == FigureType::ROOK && source_field.figure_color == target_field.figure_color {
         // Castle
 
         let side = if target_field_index % 8 != 0 { 1 } else { -1 };
@@ -205,7 +223,7 @@ pub fn play_move (source_field_index: i8, target_field_index: i8, board: &mut Bo
     } else if source_field.figure_type == FigureType::PAWN && (target_field_index < 8 || target_field_index > 56) {
         // Promotion
 
-        board.fields[target_field_index as usize] = Field { figure_type: FigureType::QUEEN, figure_color: source_field.figure_color, dirty: true };
+        board.fields[target_field_index as usize] = Field { figure_type: target_move.1, figure_color: source_field.figure_color, dirty: true };
         board.fields[source_field_index as usize] = Field { figure_type: FigureType::NONE, figure_color: FigureColor::NONE, dirty: false }; 
     } else {
         board.fields[target_field_index as usize] = board.fields[source_field_index as usize];

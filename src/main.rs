@@ -23,7 +23,7 @@ struct State {
     board: Board,    
     figures: [Figure; 13],
     source_field_index: i8,
-    legal_moves: Vec<i8>,
+    legal_moves: Vec<(i8, FigureType)>,
     next_move: FigureColor,
     en_passant: i8
 }
@@ -52,8 +52,7 @@ impl State {
         let mut en_passant = -1;
         let mut next_move = FigureColor::NONE;
         let args: Vec<String> = env::args().collect();
-        //let mut board = board_from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", &mut next_move, &mut en_passant);
-        let mut board = board_from_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", &mut next_move, &mut en_passant);
+        let mut board = board_from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", &mut next_move, &mut en_passant);
 
         // load board from supplied fen
         if args.len() > 1 {
@@ -77,7 +76,7 @@ const CHECKER_1: Color = Color{r: 0.431, g: 0.313, b: 0.313, a: 1.0};
 const CHECKER_2: Color = Color{r: 0.878, g: 0.756, b: 0.756, a: 1.0};
 const HIGHLIGHT: Color = Color{r: 0.043, g: 0.530, b: 0.016, a: 0.8};
 
-fn draw_board(ctx: &mut Context, board: &Board, figures: &[Figure; 13], source_field_index: i8, legal_moves: &Vec<i8>) {
+fn draw_board(ctx: &mut Context, board: &Board, figures: &[Figure; 13], source_field_index: i8, legal_moves: &Vec<(i8, FigureType)>) {
         for i in 0..8 {
             for j in 0..8 {
                 let color = if (i+j) % 2 != 0 { CHECKER_1 } else { CHECKER_2 };
@@ -111,7 +110,8 @@ fn draw_board(ctx: &mut Context, board: &Board, figures: &[Figure; 13], source_f
                 }
 
                 // highlight legal moves
-                if legal_moves.contains(&(i + j*8)) { 
+                let current_pos_move: Vec<&(i8, FigureType)> = legal_moves.iter().filter(|legal_move| legal_move.0 == i+j*8).collect();
+                if current_pos_move.len() > 0{ 
                     let circle_highlight = graphics::Mesh::new_circle(ctx, graphics::DrawMode::fill(), [i as f32 * 100.0 + 50.0, j as f32 * 100.0 + 50.0 ], 20.0, 0.01, HIGHLIGHT);
                     graphics::draw(ctx, &circle_highlight.unwrap(), graphics::DrawParam::default()).unwrap();
                 }
@@ -185,8 +185,9 @@ impl ggez::event::EventHandler<GameError> for State {
 
         let target_field_index = (((x as i32 - (x as i32 % 100)) / 100) + ((y as i32 - (y as i32 % 100)) / 100) * 8) as i8;
          
-        if self.legal_moves.contains(&target_field_index) {
-            play_move(self.source_field_index, target_field_index, &mut self.board, &mut self.en_passant);
+        let selected_move: Vec<&(i8, FigureType)> = self.legal_moves.iter().filter(|target_move| target_move.0 == target_field_index).collect();
+        if selected_move.len() > 0 {
+            play_move(self.source_field_index, *selected_move[0], &mut self.board, &mut self.en_passant);
             self.next_move = if self.next_move == FigureColor::WHITE { FigureColor::BLACK } else { FigureColor::WHITE }
         }
         

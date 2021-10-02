@@ -22,9 +22,9 @@ mod tests {
 
     #[test]
     fn position_to_index_test() {
-        let index = translate_position_to_index("e7");        
+        let index = translate_position_to_index("f1");        
 
-        assert_eq!(index, 12);
+        assert_eq!(index, 61);
     }
 
     #[test]
@@ -51,7 +51,15 @@ mod tests {
                         state_cpy.next_move = if state_cpy.next_move == FigureColor::WHITE { FigureColor::BLACK } else { FigureColor::WHITE };
                         let score = perft_test_rec(&mut state_cpy, depth-1, max_depth);
                         if depth == max_depth {
-                            println!("{}{}: {}", translate_index_to_position(index as u8), translate_index_to_position(m as u8), score);
+                            let mut promotion = "";
+                            match m.1 {
+                                FigureType::KNIGHT => promotion = "n",
+                                FigureType::BISHOP => promotion = "b",
+                                FigureType::ROOK => promotion = "r",
+                                FigureType::QUEEN => promotion = "q",
+                                _ => ()
+                            }
+                            println!("{}{}{}: {}", translate_index_to_position(index as u8), translate_index_to_position(m.0 as u8), promotion, score);
                         }
                         perft_score += score;
                     }
@@ -80,11 +88,11 @@ mod tests {
 */
     #[test]
     fn perft_test2() {
-        let max_depth = 3;
+        let max_depth = 1;
         let mut next_move = FigureColor::NONE;
         let mut en_passant = -1;
-        //let board = board_from_fen("r3k2r/p1pNqpb1/bn2pnp1/3P4/1p2P3/2N2Q1p/PPPBBPPP/R3K2R b KQkq - 0 1", &mut next_move, &mut en_passant);
-        let board = board_from_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", &mut next_move, &mut en_passant);
+        //let board = board_from_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", &mut next_move, &mut en_passant);
+        let board = board_from_fen("3k2r1/1ppqpb2/n1Ppnp1p/3N3b/p2P4/1N2Q1p1/PPBBPPP1/3K2RP b Kk - 0 1", &mut next_move, &mut en_passant);
     
         let mut state = State { board: board, en_passant: en_passant, next_move: next_move };
 
