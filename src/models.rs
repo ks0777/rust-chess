@@ -28,10 +28,20 @@ pub struct Figure {
 pub struct Field {
     pub figure_type: FigureType,
     pub figure_color: FigureColor,
-    pub dirty: bool
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct CastleRights {
+    pub K: bool,
+    pub Q: bool,
+    pub k: bool,
+    pub q: bool
 }
 
 #[derive(Clone, Copy, Debug)]
 pub struct Board {
     pub fields: [Field; 64],    
+    pub active: FigureColor,
+    pub castle_rights: CastleRights,
+    pub en_passant: i8
 }

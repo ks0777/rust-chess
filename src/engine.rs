@@ -1,6 +1,5 @@
 use std::vec::Vec;
 
-use crate::utils::translate_index_to_position;
 use crate::models::{Figure, FigureType, FigureColor, Field, Board};
 
 fn is_occupied(x: i8, y: i8, board: &Board) -> FigureColor {
@@ -11,7 +10,7 @@ fn is_checked(field_index: i8, figure_color: FigureColor, board: Board) -> bool 
     for i in 0..64 {
         let field = board.fields[i as usize];
         if field.figure_color != FigureColor::NONE && field.figure_color != figure_color {
-            let reachable_fields = calc_reachable_fields(i, &board, -1, false);
+            let reachable_fields = calc_reachable_fields(i, &board, false);
             let checking_field: Vec<&(i8, FigureType)> = reachable_fields.iter().filter(|field| field.0 == field_index).collect();
             if checking_field.len() > 0 { return true; }
         }
@@ -30,7 +29,7 @@ pub fn is_king_checked(figure_color: FigureColor, board: Board) -> bool {
     return is_checked(king_field_index, board.fields[king_field_index as usize].figure_color, board);
 }
 
-pub fn calc_reachable_fields(src_field: i8, board: &Board, en_passant: i8, check: bool) -> Vec<(i8, FigureType)> {
+pub fn calc_reachable_fields(src_field: i8, board: &Board, check: bool) -> Vec<(i8, FigureType)> {
     let mut vec = Vec::new();
 
     let field = &board.fields[src_field as usize];
@@ -53,10 +52,15 @@ pub fn calc_reachable_fields(src_field: i8, board: &Board, en_passant: i8, check
 
             // Castle
             let i = if field.figure_color == FigureColor::BLACK { 0 } else { 1 };
-            if src_field != 4+i*56 || field.dirty { return vec; }
+            if src_field != 4+i*56 { return vec; }
             for corner_index in [i*56, i*56+7].iter() {
-                let corner_field = board.fields[*corner_index as usize];
-                if corner_field.dirty || corner_field.figure_type != FigureType::ROOK { continue; }
+                if corner_index % 8 == 0 {
+                    // queen-side 
+                    if !((field.figure_color == FigureColor::BLACK && board.castle_rights.q) || (field.figure_color == FigureColor::WHITE && board.castle_rights.Q)) { continue; }
+                } else  {
+                    // king-side
+                    if !((field.figure_color == FigureColor::BLACK && board.castle_rights.k) || (field.figure_color == FigureColor::WHITE && board.castle_rights.K)) { continue; }
+                }
 
                 let dx_range = if corner_index % 8 == 0 { vec![-1,-2,-3] } else { vec![1,2] };
 
@@ -94,7 +98,7 @@ pub fn calc_reachable_fields(src_field: i8, board: &Board, en_passant: i8, check
             for dx in [-1, 1].iter() {
                 if x+dx >= 0 && x+dx < 8 {
                     let occupation = is_occupied(x+dx, y-dy, board);
-                    if (occupation != FigureColor::NONE || (x+dx + (y-dy)*8) == en_passant) && occupation != field.figure_color {
+                    if (occupation != FigureColor::NONE || (x+dx + (y-dy)*8) == board.en_passant) && occupation != field.figure_color {
                         if y-dy == 0 || y-dy == 7 {
                             vec.push((x+dx + (y-dy)*8, FigureType::KNIGHT));
                             vec.push((x+dx + (y-dy)*8, FigureType::BISHOP));
@@ -176,22 +180,22 @@ pub fn calc_reachable_fields(src_field: i8, board: &Board, en_passant: i8, check
     vec
 }
 
-fn is_legal(src_field_id: i8, target_move: (i8, FigureType), board: Board, en_passant: i8) -> bool {
+fn is_legal(src_field_id: i8, target_move: (i8, FigureType), board: Board) -> bool {
     let mut new_board = board.clone();
     let src_field = board.fields[src_field_id as usize];
-    play_move(src_field_id, target_move, &mut new_board, &mut en_passant.clone());
+    play_move(src_field_id, target_move, &mut new_board);
     return !is_king_checked(src_field.figure_color, new_board);
 }
 
-pub fn calc_legal_moves(src_field: i8, board: &Board, en_passant: &mut i8) -> Vec<(i8, FigureType)> {
-    let mut reachable_fields = calc_reachable_fields(src_field, board, *en_passant, true);
+pub fn calc_legal_moves(src_field: i8, board: &Board) -> Vec<(i8, FigureType)> {
+    let mut reachable_fields = calc_reachable_fields(src_field, board, true);
 
-    reachable_fields = reachable_fields.into_iter().filter(|field| is_legal(src_field, *field, *board, *en_passant)).collect();
+    reachable_fields = reachable_fields.into_iter().filter(|field| is_legal(src_field, *field, *board)).collect();
 
     return reachable_fields;
 }
 
-pub fn play_move (source_field_index: i8, target_move: (i8, FigureType), board: &mut Board, en_passant: &mut i8) {
+pub fn play_move (source_field_index: i8, target_move: (i8, FigureType), board: &mut Board) {
     let target_field_index = target_move.0;
     let source_field = board.fields[source_field_index as usize];
     let target_field = board.fields[target_field_index as usize];
@@ -199,35 +203,51 @@ pub fn play_move (source_field_index: i8, target_move: (i8, FigureType), board: 
     // en-passant
     if source_field.figure_type == FigureType::PAWN {
         if (source_field_index - target_field_index).abs() == 16 {
-            *en_passant = (target_field_index - source_field_index) / 2 + source_field_index;
+            board.en_passant = (target_field_index - source_field_index) / 2 + source_field_index;
         } else {
-            *en_passant = -1;
+            board.en_passant = -1;
             if (source_field_index - target_field_index).abs() != 8 && target_field.figure_type == FigureType::NONE {
                 if source_field.figure_color == FigureColor::WHITE {
-                    board.fields[(target_field_index+8) as usize] = Field { figure_type: FigureType::NONE, figure_color: FigureColor::NONE, dirty: false };
+                    board.fields[(target_field_index+8) as usize] = Field { figure_type: FigureType::NONE, figure_color: FigureColor::NONE };
                 } else {
-                    board.fields[(target_field_index-8) as usize] = Field { figure_type: FigureType::NONE, figure_color: FigureColor::NONE, dirty: false };
+                    board.fields[(target_field_index-8) as usize] = Field { figure_type: FigureType::NONE, figure_color: FigureColor::NONE };
                 }
             }
         }
-    } else { *en_passant = -1; }
+    } else { board.en_passant = -1; }
 
-    if source_field.figure_type == FigureType::KING && target_field.figure_type == FigureType::ROOK && source_field.figure_color == target_field.figure_color {
+    if source_field.figure_type == FigureType::KING && target_field.figure_type != FigureType::ROOK && source_field.figure_color != target_field.figure_color {
+        // non-castle king move
+        if source_field.figure_color == FigureColor::WHITE { 
+            board.castle_rights.Q = false;
+            board.castle_rights.K = false;
+        } else {
+            board.castle_rights.q = false;
+            board.castle_rights.k = false;
+        }
+    } else if source_field.figure_type == FigureType::KING && target_field.figure_type == FigureType::ROOK && source_field.figure_color == target_field.figure_color {
         // Castle
 
         let side = if target_field_index % 8 != 0 { 1 } else { -1 };
-        board.fields[source_field_index as usize] = Field { figure_type: FigureType::NONE, figure_color: FigureColor::NONE, dirty: false }; 
-        board.fields[target_field_index as usize] = Field { figure_type: FigureType::NONE, figure_color: FigureColor::NONE, dirty: false }; 
-        board.fields[(source_field_index + 1*side) as usize] = Field { figure_type: FigureType::ROOK, figure_color: source_field.figure_color, dirty: true }; 
-        board.fields[(source_field_index + 2*side) as usize] = Field { figure_type: FigureType::KING, figure_color: source_field.figure_color, dirty: true }; 
+        board.fields[source_field_index as usize] = Field { figure_type: FigureType::NONE, figure_color: FigureColor::NONE }; 
+        board.fields[target_field_index as usize] = Field { figure_type: FigureType::NONE, figure_color: FigureColor::NONE }; 
+        board.fields[(source_field_index + 1*side) as usize] = Field { figure_type: FigureType::ROOK, figure_color: source_field.figure_color }; 
+        board.fields[(source_field_index + 2*side) as usize] = Field { figure_type: FigureType::KING, figure_color: source_field.figure_color }; 
+
+        if side == 1 {
+            if board.active == FigureColor::WHITE { board.castle_rights.K = false; } else { board.castle_rights.k = false; }
+        } else {
+            if board.active == FigureColor::WHITE { board.castle_rights.Q = false; } else { board.castle_rights.q = false; }
+        }
     } else if source_field.figure_type == FigureType::PAWN && (target_field_index < 8 || target_field_index > 56) {
         // Promotion
 
-        board.fields[target_field_index as usize] = Field { figure_type: target_move.1, figure_color: source_field.figure_color, dirty: true };
-        board.fields[source_field_index as usize] = Field { figure_type: FigureType::NONE, figure_color: FigureColor::NONE, dirty: false }; 
+        board.fields[target_field_index as usize] = Field { figure_type: target_move.1, figure_color: source_field.figure_color };
+        board.fields[source_field_index as usize] = Field { figure_type: FigureType::NONE, figure_color: FigureColor::NONE }; 
     } else {
         board.fields[target_field_index as usize] = board.fields[source_field_index as usize];
-        board.fields[target_field_index as usize].dirty = true; 
-        board.fields[source_field_index as usize] = Field { figure_type: FigureType::NONE, figure_color: FigureColor::NONE, dirty: false }; 
+        board.fields[source_field_index as usize] = Field { figure_type: FigureType::NONE, figure_color: FigureColor::NONE }; 
     }
+
+    board.active = if board.active == FigureColor::WHITE { FigureColor::BLACK } else { FigureColor::WHITE } 
 }

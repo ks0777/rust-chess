@@ -1,4 +1,4 @@
-use crate::models::{Figure, FigureType, FigureColor, Field, Board};
+use crate::models::{Figure, FigureType, FigureColor, Field, Board, CastleRights};
 
 pub fn translate_position_to_index(pos: &str) -> i8 {
     let pos_chars: Vec<char> = pos.chars().collect();
@@ -19,7 +19,7 @@ pub fn translate_index_to_position(index: u8) -> String {
     return format!("{}{}", file as char, rank as char);
 }
 
-pub fn board_from_fen(fen: &str, next_move: &mut FigureColor, en_passant: &mut i8) -> Board {
+pub fn board_from_fen(fen: &str) -> Board {
     let fen_split: Vec<&str> = fen.split(' ').collect();
 
     let fen_board = fen_split[0];
@@ -27,8 +27,31 @@ pub fn board_from_fen(fen: &str, next_move: &mut FigureColor, en_passant: &mut i
     let fen_castle = fen_split[2];
     let fen_en_passant = fen_split[3];
 
+    // active color
+    let mut active = FigureColor::NONE;
+    match fen_active {
+        "w" => active = FigureColor::WHITE,
+        "b" => active = FigureColor::BLACK,
+        _ => ()
+    }
+
+    // castle rights
+    let mut castle_rights = CastleRights { K: false, Q: false, k: false, q: false};
+    if fen_castle.contains("K") { castle_rights.K = true; }
+    if fen_castle.contains("Q") { castle_rights.Q = true; }
+    if fen_castle.contains("k") { castle_rights.k = true; }
+    if fen_castle.contains("q") { castle_rights.q = true; }
+    println!("{} {} {} {}", castle_rights.K, castle_rights.Q, castle_rights.k, castle_rights.q);
+
+    // en passant
+
     let mut i = 0;
-    let mut board: Board = Board { fields: [Field {figure_type: FigureType::NONE, figure_color: FigureColor::NONE, dirty: false}; 64] };
+    let mut board: Board = Board {
+        fields: [Field {figure_type: FigureType::NONE, figure_color: FigureColor::NONE}; 64],
+        active: active,
+        castle_rights: castle_rights,
+        en_passant: translate_position_to_index(fen_en_passant)
+    };
 
     for c in fen_board.chars() {
         if i > 63 { break; }
@@ -42,33 +65,17 @@ pub fn board_from_fen(fen: &str, next_move: &mut FigureColor, en_passant: &mut i
         } else if c.is_ascii_alphanumeric() { 
             let figure: Vec<_> = c.to_lowercase().collect();
             match figure[0] {
-                'k' => board.fields[i as usize] = Field { figure_type: FigureType::KING, figure_color: color, dirty: false },
-                'q' => board.fields[i as usize] = Field { figure_type: FigureType::QUEEN, figure_color: color, dirty: false },
-                'r' => board.fields[i as usize] = Field { figure_type: FigureType::ROOK, figure_color: color, dirty: false },
-                'n' => board.fields[i as usize] = Field { figure_type: FigureType::KNIGHT, figure_color: color, dirty: false },
-                'b' => board.fields[i as usize] = Field { figure_type: FigureType::BISHOP, figure_color: color, dirty: false },
-                'p' => board.fields[i as usize] = Field { figure_type: FigureType::PAWN, figure_color: color, dirty: false },
+                'k' => board.fields[i as usize] = Field { figure_type: FigureType::KING, figure_color: color },
+                'q' => board.fields[i as usize] = Field { figure_type: FigureType::QUEEN, figure_color: color },
+                'r' => board.fields[i as usize] = Field { figure_type: FigureType::ROOK, figure_color: color },
+                'n' => board.fields[i as usize] = Field { figure_type: FigureType::KNIGHT, figure_color: color },
+                'b' => board.fields[i as usize] = Field { figure_type: FigureType::BISHOP, figure_color: color },
+                'p' => board.fields[i as usize] = Field { figure_type: FigureType::PAWN, figure_color: color },
                 _ => ()
             }
             i += 1;
         }
     }
-
-    // active color
-    match fen_active {
-        "w" => *next_move = FigureColor::WHITE,
-        "b" => *next_move = FigureColor::BLACK,
-        _ => ()
-    }
-
-    // castle rights
-    if !fen_castle.contains("K") { board.fields[63].dirty = true; }
-    if !fen_castle.contains("Q") { board.fields[56].dirty = true; }
-    if !fen_castle.contains("k") { board.fields[7].dirty = true; }
-    if !fen_castle.contains("q") { board.fields[0].dirty = true; }
-
-    // en passant
-    *en_passant = translate_position_to_index(fen_en_passant);
 
     return board;
 }

@@ -24,8 +24,6 @@ struct State {
     figures: [Figure; 13],
     source_field_index: i8,
     legal_moves: Vec<(i8, FigureType)>,
-    next_move: FigureColor,
-    en_passant: i8
 }
 
 impl State {
@@ -49,14 +47,12 @@ impl State {
         println!("done!");
 
         // Set up board
-        let mut en_passant = -1;
-        let mut next_move = FigureColor::NONE;
         let args: Vec<String> = env::args().collect();
-        let mut board = board_from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", &mut next_move, &mut en_passant);
+        let mut board = board_from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
         // load board from supplied fen
         if args.len() > 1 {
-            board = board_from_fen(args[1].as_str(), &mut next_move, &mut en_passant);
+            board = board_from_fen(args[1].as_str());
         }
 
         let s = State {
@@ -65,8 +61,6 @@ impl State {
             figures: figures,
             source_field_index: -1,
             legal_moves: Vec::new(),
-            next_move: next_move,
-            en_passant: en_passant
         };
         Ok(s)
     }
@@ -86,10 +80,6 @@ fn draw_board(ctx: &mut Context, board: &Board, figures: &[Figure; 13], source_f
                 graphics::draw(ctx, &rectangle.unwrap(), graphics::DrawParam::default()).unwrap();
 
                 let field = &board.fields[(i+j*8) as usize];
-                if field.dirty {
-                        let rectangle = graphics::Mesh::new_rectangle(ctx, graphics::DrawMode::fill(), graphics::Rect::new(i as f32 * 100.0, j as f32 * 100.0, 100.0, 100.0), HIGHLIGHT);
-                        graphics::draw(ctx, &rectangle.unwrap(), graphics::DrawParam::default()).unwrap();
-                }
 
                 // draw figures
                 let field = &board.fields[(i+j*8) as usize];
@@ -168,9 +158,9 @@ impl ggez::event::EventHandler<GameError> for State {
     ) {
         let source_field_index = (((x as i32 - (x as i32 % 100)) / 100) + ((y as i32 - (y as i32 % 100)) / 100) * 8) as i8;
         let source_field = self.board.fields[source_field_index as usize];
-        if source_field.figure_type != FigureType::NONE && source_field.figure_color == self.next_move {
+        if source_field.figure_type != FigureType::NONE && source_field.figure_color == self.board.active {
             self.source_field_index = source_field_index;
-            self.legal_moves = calc_legal_moves(source_field_index, &self.board, &mut self.en_passant);
+            self.legal_moves = calc_legal_moves(source_field_index, &self.board);
         }
     }
 
@@ -187,8 +177,7 @@ impl ggez::event::EventHandler<GameError> for State {
          
         let selected_move: Vec<&(i8, FigureType)> = self.legal_moves.iter().filter(|target_move| target_move.0 == target_field_index).collect();
         if selected_move.len() > 0 {
-            play_move(self.source_field_index, *selected_move[0], &mut self.board, &mut self.en_passant);
-            self.next_move = if self.next_move == FigureColor::WHITE { FigureColor::BLACK } else { FigureColor::WHITE }
+            play_move(self.source_field_index, *selected_move[0], &mut self.board);
         }
         
         self.source_field_index = -1;

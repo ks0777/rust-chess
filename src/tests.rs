@@ -6,13 +6,6 @@ mod tests {
     use std::time::Instant;
     use std::boxed::Box;
 
-    #[derive(Clone,Copy)]
-    struct State {
-        board: Board,
-        en_passant: i8,
-        next_move: FigureColor,
-    }
-
     #[test]
     fn index_to_position_test() {
         let position = translate_index_to_position(12);        
@@ -37,19 +30,18 @@ mod tests {
         }
     }
 
-    fn perft_test_rec(state: &mut State, depth: u8, max_depth: u8) -> usize {
+    fn perft_test_rec(board: &mut Board, depth: u8, max_depth: u8) -> usize {
         if depth == 0 { return 1; }
         let mut perft_score = 0;
         for index in 0..64 {
-            let field = state.board.fields[index];
-            if field.figure_color == state.next_move {
-                let legal_moves = calc_reachable_fields(index as i8, &state.board, state.en_passant, true);
+            let field = board.fields[index];
+            if field.figure_color == board.active {
+                let legal_moves = calc_reachable_fields(index as i8, &board, true);
                 for m in legal_moves {
-                    let mut state_cpy = Box::new(state.clone());
-                    play_move(index as i8, m, &mut state_cpy.board, &mut state_cpy.en_passant);
-                    if !is_king_checked(state_cpy.next_move, state_cpy.board) {
-                        state_cpy.next_move = if state_cpy.next_move == FigureColor::WHITE { FigureColor::BLACK } else { FigureColor::WHITE };
-                        let score = perft_test_rec(&mut state_cpy, depth-1, max_depth);
+                    let mut board_cpy = Box::new(board.clone());
+                    play_move(index as i8, m, &mut board_cpy);
+                    if !is_king_checked(board.active, *board_cpy) {
+                        let score = perft_test_rec(&mut board_cpy, depth-1, max_depth);
                         if depth == max_depth {
                             let mut promotion = "";
                             match m.1 {
@@ -73,14 +65,10 @@ mod tests {
     #[test]
     fn perft_test() {
         let max_depth = 5;
-        let mut next_move = FigureColor::NONE;
-        let mut en_passant = -1;
-        let board = board_from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", &mut next_move, &mut en_passant);
+        let mut board = board_from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
     
-        let mut state = State { board: board, en_passant: en_passant, next_move: next_move };
-
         let start = Instant::now();
-        let perft_score = perft_test_rec(&mut state, max_depth, max_depth);
+        let perft_score = perft_test_rec(&mut board, max_depth, max_depth);
         println!("perft test @ depth {} took {}ms", max_depth, start.elapsed().as_millis());
 
         assert_eq!(perft_score, 4865609);
@@ -88,16 +76,11 @@ mod tests {
 */
     #[test]
     fn perft_test2() {
-        let max_depth = 1;
-        let mut next_move = FigureColor::NONE;
-        let mut en_passant = -1;
-        //let board = board_from_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", &mut next_move, &mut en_passant);
-        let board = board_from_fen("3k2r1/1ppqpb2/n1Ppnp1p/3N3b/p2P4/1N2Q1p1/PPBBPPP1/3K2RP b Kk - 0 1", &mut next_move, &mut en_passant);
+        let max_depth = 4;
+        let mut board = board_from_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
     
-        let mut state = State { board: board, en_passant: en_passant, next_move: next_move };
-
         let start = Instant::now();
-        let perft_score = perft_test_rec(&mut state, max_depth, max_depth);
+        let perft_score = perft_test_rec(&mut board, max_depth, max_depth);
         println!("perft test @ depth {} took {}ms", max_depth, start.elapsed().as_millis());
 
         assert_eq!(perft_score, 97862);
