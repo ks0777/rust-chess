@@ -41,7 +41,6 @@ pub fn board_from_fen(fen: &str) -> Board {
     if fen_castle.contains("Q") { castle_rights.Q = true; }
     if fen_castle.contains("k") { castle_rights.k = true; }
     if fen_castle.contains("q") { castle_rights.q = true; }
-    println!("{} {} {} {}", castle_rights.K, castle_rights.Q, castle_rights.k, castle_rights.q);
 
     // en passant
 

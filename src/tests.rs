@@ -83,7 +83,6 @@ mod tests {
         let perft_score = perft_test_rec(&mut board, max_depth, max_depth);
         println!("perft test @ depth {} took {}ms", max_depth, start.elapsed().as_millis());
 
-        assert_eq!(perft_score, 97862);
+        assert_eq!(perft_score, 4085603);
     }
-
 }

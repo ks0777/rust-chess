@@ -9,6 +9,7 @@ use std::env;
 mod engine;
 use engine::calc_legal_moves;
 use engine::play_move;
+use engine::is_checked;
 
 mod models;
 use models::{Figure, FigureType, FigureColor, Field, Board};
@@ -70,6 +71,9 @@ const CHECKER_1: Color = Color{r: 0.431, g: 0.313, b: 0.313, a: 1.0};
 const CHECKER_2: Color = Color{r: 0.878, g: 0.756, b: 0.756, a: 1.0};
 const HIGHLIGHT: Color = Color{r: 0.043, g: 0.530, b: 0.016, a: 0.8};
 
+const CHECK_1: Color = Color{r: 0.0, g: 0.0, b: 1.0, a: 0.5};
+const CHECK_2: Color = Color{r: 1.0, g: 0.0, b: 0.0, a: 0.5};
+
 fn draw_board(ctx: &mut Context, board: &Board, figures: &[Figure; 13], source_field_index: i8, legal_moves: &Vec<(i8, FigureType)>) {
         for i in 0..8 {
             for j in 0..8 {
@@ -79,7 +83,20 @@ fn draw_board(ctx: &mut Context, board: &Board, figures: &[Figure; 13], source_f
                 let rectangle = graphics::Mesh::new_rectangle(ctx, graphics::DrawMode::fill(), graphics::Rect::new(i as f32 * 100.0, j as f32 * 100.0, 100.0, 100.0), color);
                 graphics::draw(ctx, &rectangle.unwrap(), graphics::DrawParam::default()).unwrap();
 
-                let field = &board.fields[(i+j*8) as usize];
+                /*
+                if is_checked(i+j*8, FigureColor::BLACK, *board) || is_checked(i+j*8, FigureColor::WHITE, *board) {
+                    let rectangle = graphics::Mesh::new_rectangle(ctx, graphics::DrawMode::fill(), graphics::Rect::new(i as f32 * 100.0, j as f32 * 100.0, 100.0, 100.0), Color{r:0.0,g:0.0,b:0.0,a:1.0});
+                    graphics::draw(ctx, &rectangle.unwrap(), graphics::DrawParam::default()).unwrap();
+                }
+                if is_checked(i+j*8, FigureColor::WHITE, *board) {
+                    let rectangle = graphics::Mesh::new_rectangle(ctx, graphics::DrawMode::fill(), graphics::Rect::new(i as f32 * 100.0, j as f32 * 100.0, 100.0, 100.0), CHECK_1);
+                    graphics::draw(ctx, &rectangle.unwrap(), graphics::DrawParam::default()).unwrap();
+                }
+                if is_checked(i+j*8, FigureColor::BLACK, *board) {
+                    let rectangle = graphics::Mesh::new_rectangle(ctx, graphics::DrawMode::fill(), graphics::Rect::new(i as f32 * 100.0, j as f32 * 100.0, 100.0, 100.0), CHECK_2);
+                    graphics::draw(ctx, &rectangle.unwrap(), graphics::DrawParam::default()).unwrap();
+                }
+                */
 
                 // draw figures
                 let field = &board.fields[(i+j*8) as usize];

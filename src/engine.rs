@@ -1,16 +1,23 @@
 use std::vec::Vec;
 
-use crate::models::{Figure, FigureType, FigureColor, Field, Board};
+use crate::models::{FigureType, FigureColor, Field, Board};
 
 fn is_occupied(x: i8, y: i8, board: &Board) -> FigureColor {
     board.fields[(x + y*8) as usize].figure_color
 }
 
-fn is_checked(field_index: i8, figure_color: FigureColor, board: Board) -> bool {
+pub fn is_checked(field_index: i8, figure_color: FigureColor, board: Board) -> bool {
+    let mut board_cpy = board.clone();
+    let check_field = board_cpy.fields[field_index as usize];
+
+    if check_field.figure_type == FigureType::NONE {
+        board_cpy.fields[field_index as usize] = Field { figure_type: FigureType::NONE, figure_color: figure_color };
+    }
+
     for i in 0..64 {
-        let field = board.fields[i as usize];
+        let field = board_cpy.fields[i as usize];
         if field.figure_color != FigureColor::NONE && field.figure_color != figure_color {
-            let reachable_fields = calc_reachable_fields(i, &board, false);
+            let reachable_fields = calc_reachable_fields(i, &board_cpy, false);
             let checking_field: Vec<&(i8, FigureType)> = reachable_fields.iter().filter(|field| field.0 == field_index).collect();
             if checking_field.len() > 0 { return true; }
         }
@@ -216,6 +223,13 @@ pub fn play_move (source_field_index: i8, target_move: (i8, FigureType), board: 
         }
     } else { board.en_passant = -1; }
 
+    if source_field.figure_type == FigureType::ROOK {
+        if source_field_index == 0 { board.castle_rights.q = false; }
+        if source_field_index == 7 { board.castle_rights.k = false; }
+        if source_field_index == 56 { board.castle_rights.Q = false; }
+        if source_field_index == 63 { board.castle_rights.K = false; }
+    }
+
     if source_field.figure_type == FigureType::KING && target_field.figure_type != FigureType::ROOK && source_field.figure_color != target_field.figure_color {
         // non-castle king move
         if source_field.figure_color == FigureColor::WHITE { 
@@ -225,6 +239,9 @@ pub fn play_move (source_field_index: i8, target_move: (i8, FigureType), board: 
             board.castle_rights.q = false;
             board.castle_rights.k = false;
         }
+
+        board.fields[target_field_index as usize] = board.fields[source_field_index as usize];
+        board.fields[source_field_index as usize] = Field { figure_type: FigureType::NONE, figure_color: FigureColor::NONE }; 
     } else if source_field.figure_type == FigureType::KING && target_field.figure_type == FigureType::ROOK && source_field.figure_color == target_field.figure_color {
         // Castle
 
@@ -249,5 +266,5 @@ pub fn play_move (source_field_index: i8, target_move: (i8, FigureType), board: 
         board.fields[source_field_index as usize] = Field { figure_type: FigureType::NONE, figure_color: FigureColor::NONE }; 
     }
 
-    board.active = if board.active == FigureColor::WHITE { FigureColor::BLACK } else { FigureColor::WHITE } 
+    board.active = if board.active == FigureColor::WHITE { FigureColor::BLACK } else { FigureColor::WHITE }; 
 }
