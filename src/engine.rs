@@ -61,6 +61,8 @@ pub fn calc_reachable_fields(src_field: i8, board: &Board, check: bool) -> Vec<(
             let i = if field.figure_color == FigureColor::BLACK { 0 } else { 1 };
             if src_field != 4+i*56 { return vec; }
             for corner_index in [i*56, i*56+7].iter() {
+                let corner_field = board.fields[*corner_index as usize];
+                if corner_field.figure_type != FigureType::ROOK || corner_field.figure_color != board.fields[src_field as usize].figure_color { continue; }
                 if corner_index % 8 == 0 {
                     // queen-side 
                     if !((field.figure_color == FigureColor::BLACK && board.castle_rights.q) || (field.figure_color == FigureColor::WHITE && board.castle_rights.Q)) { continue; }

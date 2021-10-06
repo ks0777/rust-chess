@@ -1,8 +1,7 @@
 #!/usr/bin/bash
-depth=1
+depth=4
 
 fen="r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"
-fen="3k2r/p1ppqpb1/bn1Ppnp1/4N3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R b KQkq - 0 1"
 output=$(echo -e 'position fen '$fen'\ngo perft '$depth | stockfish)
 output=$(echo "$output" | sed '/^$/d')
 output=$(echo "$output" | sed '$d')

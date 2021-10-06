@@ -61,9 +61,9 @@ mod tests {
 
         return perft_score;
     }
-/*
+
     #[test]
-    fn perft_test() {
+    fn perft_test_start() {
         let max_depth = 5;
         let mut board = board_from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
     
@@ -73,7 +73,7 @@ mod tests {
 
         assert_eq!(perft_score, 4865609);
     }
-*/
+
     #[test]
     fn perft_test2() {
         let max_depth = 4;
@@ -84,5 +84,17 @@ mod tests {
         println!("perft test @ depth {} took {}ms", max_depth, start.elapsed().as_millis());
 
         assert_eq!(perft_score, 4085603);
+    }
+
+    #[test]
+    fn perft_test_promotion() {
+        let max_depth = 5;
+        let mut board = board_from_fen("n1n5/PPPk4/8/8/8/8/4Kppp/5N1N b - - 0 1");
+    
+        let start = Instant::now();
+        let perft_score = perft_test_rec(&mut board, max_depth, max_depth);
+        println!("perft test @ depth {} took {}ms", max_depth, start.elapsed().as_millis());
+
+        assert_eq!(perft_score, 3605103);
     }
 }
