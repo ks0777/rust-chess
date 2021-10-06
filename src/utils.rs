@@ -1,4 +1,4 @@
-use crate::models::{Figure, FigureType, FigureColor, Field, Board, CastleRights};
+use crate::models::{FigureType, FigureColor, Field, Board, CastleRights};
 
 pub fn translate_position_to_index(pos: &str) -> i8 {
     let pos_chars: Vec<char> = pos.chars().collect();
@@ -10,6 +10,7 @@ pub fn translate_position_to_index(pos: &str) -> i8 {
     return -1;
 }
 
+#[allow(dead_code)]
 pub fn translate_index_to_position(index: u8) -> String {
     let mut file = index % 8;
     let mut rank = (index-file) / 8;

@@ -92,10 +92,10 @@ pub fn calc_reachable_fields(src_field: i8, board: &Board, check: bool) -> Vec<(
             let dy = if field.figure_color == FigureColor::WHITE { 1 } else { -1 };
             if is_occupied(x, y-dy, board) == FigureColor::NONE {
                 if y-dy == 0 || y-dy == 7 {
+                    vec.push((x + (y-dy)*8, FigureType::QUEEN));
                     vec.push((x + (y-dy)*8, FigureType::KNIGHT));
                     vec.push((x + (y-dy)*8, FigureType::BISHOP));
                     vec.push((x + (y-dy)*8, FigureType::ROOK));
-                    vec.push((x + (y-dy)*8, FigureType::QUEEN));
                 } else {
                     vec.push((x + (y-dy)*8, FigureType::NONE));
                 }
@@ -109,10 +109,10 @@ pub fn calc_reachable_fields(src_field: i8, board: &Board, check: bool) -> Vec<(
                     let occupation = is_occupied(x+dx, y-dy, board);
                     if (occupation != FigureColor::NONE || (x+dx + (y-dy)*8) == board.en_passant) && occupation != field.figure_color {
                         if y-dy == 0 || y-dy == 7 {
+                            vec.push((x+dx + (y-dy)*8, FigureType::QUEEN));
                             vec.push((x+dx + (y-dy)*8, FigureType::KNIGHT));
                             vec.push((x+dx + (y-dy)*8, FigureType::BISHOP));
                             vec.push((x+dx + (y-dy)*8, FigureType::ROOK));
-                            vec.push((x+dx + (y-dy)*8, FigureType::QUEEN));
                         } else {
                             vec.push((x+dx + (y-dy)*8, FigureType::NONE));
                         }

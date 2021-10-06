@@ -9,10 +9,10 @@ use std::env;
 mod engine;
 use engine::calc_legal_moves;
 use engine::play_move;
-use engine::is_checked;
+//use engine::is_checked;
 
 mod models;
-use models::{Figure, FigureType, FigureColor, Field, Board};
+use models::{Figure, FigureType, FigureColor, Board};
 
 mod utils;
 use utils::board_from_fen;
@@ -71,8 +71,8 @@ const CHECKER_1: Color = Color{r: 0.431, g: 0.313, b: 0.313, a: 1.0};
 const CHECKER_2: Color = Color{r: 0.878, g: 0.756, b: 0.756, a: 1.0};
 const HIGHLIGHT: Color = Color{r: 0.043, g: 0.530, b: 0.016, a: 0.8};
 
-const CHECK_1: Color = Color{r: 0.0, g: 0.0, b: 1.0, a: 0.5};
-const CHECK_2: Color = Color{r: 1.0, g: 0.0, b: 0.0, a: 0.5};
+//const CHECK_1: Color = Color{r: 0.0, g: 0.0, b: 1.0, a: 0.5};
+//const CHECK_2: Color = Color{r: 1.0, g: 0.0, b: 0.0, a: 0.5};
 
 fn draw_board(ctx: &mut Context, board: &Board, figures: &[Figure; 13], source_field_index: i8, legal_moves: &Vec<(i8, FigureType)>) {
         for i in 0..8 {

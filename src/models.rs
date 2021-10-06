@@ -31,6 +31,7 @@ pub struct Field {
 }
 
 #[derive(Clone, Copy, Debug)]
+#[allow(non_snake_case)]
 pub struct CastleRights {
     pub K: bool,
     pub Q: bool,
