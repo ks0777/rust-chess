@@ -19,12 +19,20 @@ use utils::board_from_fen;
 
 mod tests;
 
+struct PromotionState {
+    src_index: i8,
+    dst_index: i8,
+    figure_type: FigureType,
+    show_menu: bool
+}
+
 struct State {
     dt: std::time::Duration, 
     board: Board,    
     figures: [Figure; 13],
     source_field_index: i8,
     legal_moves: Vec<(i8, FigureType)>,
+    promo_state: PromotionState,
 }
 
 impl State {
@@ -62,6 +70,7 @@ impl State {
             figures: figures,
             source_field_index: -1,
             legal_moves: Vec::new(),
+            promo_state: PromotionState { src_index: -1, dst_index: -1, show_menu: false, figure_type: FigureType::NONE },
         };
         Ok(s)
     }
@@ -127,6 +136,18 @@ fn draw_board(ctx: &mut Context, board: &Board, figures: &[Figure; 13], source_f
         }
 }
 
+fn draw_promotion_menu(ctx: &mut Context, figures: &[Figure; 13]) {
+    let rectangle = graphics::Mesh::new_rectangle(ctx, graphics::DrawMode::fill(), graphics::Rect::new(195.0, 295.0, 410.0, 110.0), graphics::Color::BLACK);
+    graphics::draw(ctx, &rectangle.unwrap(), graphics::DrawParam::default()).unwrap();
+    let rectangle = graphics::Mesh::new_rectangle(ctx, graphics::DrawMode::fill(), graphics::Rect::new(200.0, 300.0, 400.0, 100.0), graphics::Color::WHITE);
+    graphics::draw(ctx, &rectangle.unwrap(), graphics::DrawParam::default()).unwrap();
+
+    graphics::draw(ctx, &figures[1].image, graphics::DrawParam::default().dest(Vector2{x: 200.0, y: 300.0}).scale(Vector2{x: 0.09765625, y: 0.09765625})).unwrap();
+    graphics::draw(ctx, &figures[2].image, graphics::DrawParam::default().dest(Vector2{x: 300.0, y: 300.0}).scale(Vector2{x: 0.09765625, y: 0.09765625})).unwrap();
+    graphics::draw(ctx, &figures[3].image, graphics::DrawParam::default().dest(Vector2{x: 400.0, y: 300.0}).scale(Vector2{x: 0.09765625, y: 0.09765625})).unwrap();
+    graphics::draw(ctx, &figures[4].image, graphics::DrawParam::default().dest(Vector2{x: 500.0, y: 300.0}).scale(Vector2{x: 0.09765625, y: 0.09765625})).unwrap();
+}
+
 fn draw_floating_figure(ctx: &mut Context, board: &Board, figures: &[Figure; 13], source_field_index: i8) {
     if source_field_index != -1 {
         input::mouse::set_cursor_hidden(ctx, true);
@@ -157,6 +178,9 @@ impl ggez::event::EventHandler<GameError> for State {
 
         draw_floating_figure(ctx, &self.board, &self.figures, self.source_field_index);
 
+        if self.promo_state.show_menu {
+            draw_promotion_menu(ctx, &self.figures);
+        }
         let text = Text::new(format!("{} FPS", 1000000000 / self.dt.as_nanos()));
         let text_dst = Point2 { x: 5.0, y: 5.0};
         graphics::draw(ctx, &text, graphics::DrawParam::default().dest(text_dst).color(Color::BLACK))?;
@@ -173,11 +197,13 @@ impl ggez::event::EventHandler<GameError> for State {
         x: f32,
         y: f32,
     ) {
-        let source_field_index = (((x as i32 - (x as i32 % 100)) / 100) + ((y as i32 - (y as i32 % 100)) / 100) * 8) as i8;
-        let source_field = self.board.fields[source_field_index as usize];
-        if source_field.figure_type != FigureType::NONE && source_field.figure_color == self.board.active {
-            self.source_field_index = source_field_index;
-            self.legal_moves = calc_legal_moves(source_field_index, &self.board);
+        if !self.promo_state.show_menu {
+            let source_field_index = (((x as i32 - (x as i32 % 100)) / 100) + ((y as i32 - (y as i32 % 100)) / 100) * 8) as i8;
+            let source_field = self.board.fields[source_field_index as usize];
+            if source_field.figure_type != FigureType::NONE && source_field.figure_color == self.board.active {
+                self.source_field_index = source_field_index;
+                self.legal_moves = calc_legal_moves(source_field_index, &self.board);
+            }
         }
     }
 
@@ -188,17 +214,38 @@ impl ggez::event::EventHandler<GameError> for State {
         x: f32,
         y: f32,
     ) {
-        if self.source_field_index == -1 { return; }
+        if !self.promo_state.show_menu {
+            if self.source_field_index == -1 { return; }
 
-        let target_field_index = (((x as i32 - (x as i32 % 100)) / 100) + ((y as i32 - (y as i32 % 100)) / 100) * 8) as i8;
-         
-        let selected_move: Vec<&(i8, FigureType)> = self.legal_moves.iter().filter(|target_move| target_move.0 == target_field_index).collect();
-        if selected_move.len() > 0 {
-            play_move(self.source_field_index, *selected_move[0], &mut self.board);
+            let target_field_index = (((x as i32 - (x as i32 % 100)) / 100) + ((y as i32 - (y as i32 % 100)) / 100) * 8) as i8;
+             
+            let selected_move: Vec<&(i8, FigureType)> = self.legal_moves.iter().filter(|target_move| target_move.0 == target_field_index).collect();
+            if selected_move.len() == 1 {
+                play_move(self.source_field_index, *selected_move[0], &mut self.board);
+            } else if selected_move.len() > 1 {
+                self.promo_state.src_index = self.source_field_index;
+                self.promo_state.dst_index = target_field_index;
+                self.promo_state.figure_type = FigureType::NONE;
+                self.promo_state.show_menu = true;
+            }
+            
+            self.source_field_index = -1;
+            self.legal_moves = Vec::new();
+        } else {
+            let source_field_index = (((x as i32 - (x as i32 % 100)) / 100) + ((y as i32 - (y as i32 % 100)) / 100) * 8) as i8;
+            match source_field_index {
+                26 => self.promo_state.figure_type = FigureType::QUEEN,
+                27 => self.promo_state.figure_type = FigureType::BISHOP,
+                28 => self.promo_state.figure_type = FigureType::KNIGHT,
+                29 => self.promo_state.figure_type = FigureType::ROOK,
+                _ => ()
+            }
+
+            if self.promo_state.figure_type != FigureType::NONE {
+                self.promo_state.show_menu = false;
+                play_move(self.promo_state.src_index, (self.promo_state.dst_index, self.promo_state.figure_type), &mut self.board);
+            }
         }
-        
-        self.source_field_index = -1;
-        self.legal_moves = Vec::new();
     }
 
 }
