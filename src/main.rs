@@ -10,6 +10,8 @@ mod engine;
 use engine::calc_legal_moves;
 use engine::play_move;
 //use engine::is_checked;
+use engine::nega_max;
+use engine::nega_max_ab;
 
 mod models;
 use models::{Figure, FigureType, FigureColor, Board};
@@ -222,6 +224,12 @@ impl ggez::event::EventHandler<GameError> for State {
             let selected_move: Vec<&(i8, FigureType)> = self.legal_moves.iter().filter(|target_move| target_move.0 == target_field_index).collect();
             if selected_move.len() == 1 {
                 play_move(self.source_field_index, *selected_move[0], &mut self.board);
+                let mut best_move = (-1, (-1, FigureType::NONE));
+                //nega_max(&self.board, 4, &mut best_move);
+                nega_max_ab(&self.board, 5, -32767, 32767, &mut best_move);
+                if best_move.0 == -1 { println!("gg!"); } else {
+                    play_move(best_move.0, best_move.1, &mut self.board);
+                }
             } else if selected_move.len() > 1 {
                 self.promo_state.src_index = self.source_field_index;
                 self.promo_state.dst_index = target_field_index;
@@ -244,6 +252,12 @@ impl ggez::event::EventHandler<GameError> for State {
             if self.promo_state.figure_type != FigureType::NONE {
                 self.promo_state.show_menu = false;
                 play_move(self.promo_state.src_index, (self.promo_state.dst_index, self.promo_state.figure_type), &mut self.board);
+                let mut best_move = (-1, (-1, FigureType::NONE));
+                //nega_max(&self.board, 4, &mut best_move);
+                nega_max_ab(&self.board, 5, -32767, 32767, &mut best_move);
+                if best_move.0 == -1 { println!("gg!"); } else {
+                    play_move(best_move.0, best_move.1, &mut self.board);
+                }
             }
         }
     }

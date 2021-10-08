@@ -270,3 +270,87 @@ pub fn play_move (source_field_index: i8, target_move: (i8, FigureType), board: 
 
     board.active = if board.active == FigureColor::WHITE { FigureColor::BLACK } else { FigureColor::WHITE }; 
 }
+
+fn evaluate_position(board: &Board) -> i16 {
+    let mut score = 0;
+
+    for field in board.fields.iter() {
+        let side_multiplier = if field.figure_color == board.active { 1 } else { -1 };
+        match field.figure_type {
+            FigureType::PAWN => score += side_multiplier * 100,
+            FigureType::KNIGHT => score += side_multiplier * 100 * 3,
+            FigureType::BISHOP => score += side_multiplier * 100 * 3,
+            FigureType::ROOK => score += side_multiplier * 100 * 5,
+            FigureType::QUEEN => score += side_multiplier * 100 * 10,
+            _ => ()
+        }
+    }
+    return score;
+}
+
+pub fn nega_max(board: &Board, depth: u8, best_move: &mut (i8, (i8, FigureType))) -> i16 {
+    if depth == 0 { return evaluate_position(board); }
+
+    let mut max = -32767;
+    let mut can_move = false;
+
+    for index in 0..64i8 {
+        let field = board.fields[index as usize];
+        if field.figure_color == board.active {
+            let legal_moves = calc_reachable_fields(index as i8, &board, true);
+            if legal_moves.len() > 0 { can_move = true; }
+            for m in legal_moves {
+                let mut board_cpy = board.clone();
+                play_move(index as i8, m, &mut board_cpy);
+                if !is_king_checked(board.active, board_cpy) {
+                    let score = -nega_max(&board_cpy, depth-1, best_move);
+
+                    if score > max {
+                        max = score;
+                        if depth == 4 {
+                            *best_move = (index, m);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if !can_move { println!("can't move anymore"); }
+
+    return max;
+}
+
+pub fn nega_max_ab(board: &Board, depth: u8, alpha: i16, beta: i16, best_move: &mut (i8, (i8, FigureType))) -> i16 {
+    if depth == 0 { return evaluate_position(board); }
+
+    let mut max = alpha;
+    let mut can_move = false;
+
+    for index in 0..64i8 {
+        let field = board.fields[index as usize];
+        if field.figure_color == board.active {
+            let legal_moves = calc_reachable_fields(index as i8, &board, true);
+            if legal_moves.len() > 0 { can_move = true; }
+            for m in legal_moves {
+                let mut board_cpy = board.clone();
+                play_move(index as i8, m, &mut board_cpy);
+                if !is_king_checked(board.active, board_cpy) {
+                    let score = -nega_max_ab(&board_cpy, depth-1, -beta, -max, best_move);
+
+                    if score > max {
+                        max = score;
+                        if depth == 5 {
+                            *best_move = (index, m);
+                        }
+                        if max >= beta { return max; }
+                    }
+                }
+            }
+        }
+    }
+
+    if !can_move { println!("can't move anymore"); }
+
+    return max;
+}
