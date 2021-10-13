@@ -348,7 +348,6 @@ pub fn nega_max_ab_rec(board: &Board, depth: u8, max_depth: u8, alpha: i32, beta
                 if score > max {
                     max = score;
                     if depth == max_depth {
-                        println!("best move has score {}", max);
                         *best_move = (index, m);
                     }
                     if max >= beta { return max; }
@@ -358,10 +357,7 @@ pub fn nega_max_ab_rec(board: &Board, depth: u8, max_depth: u8, alpha: i32, beta
     }
 
     if !can_move { 
-        //println!("can't move anymore");
-
         if is_king_checked(board.active, *board) {
-            //println!("{:?}", board);
             return -32767;
         } else { return 0; }
     }
