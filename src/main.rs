@@ -226,7 +226,7 @@ impl ggez::event::EventHandler<GameError> for State {
                 play_move(self.source_field_index, *selected_move[0], &mut self.board);
                 let mut best_move = (-1, (-1, FigureType::NONE));
                 //nega_max(&self.board, 4, &mut best_move);
-                nega_max_ab(&self.board, 5, -32767, 32767, &mut best_move);
+                nega_max_ab(&self.board, 7, &mut best_move);
                 if best_move.0 == -1 { println!("gg!"); } else {
                     play_move(best_move.0, best_move.1, &mut self.board);
                 }
@@ -254,7 +254,7 @@ impl ggez::event::EventHandler<GameError> for State {
                 play_move(self.promo_state.src_index, (self.promo_state.dst_index, self.promo_state.figure_type), &mut self.board);
                 let mut best_move = (-1, (-1, FigureType::NONE));
                 //nega_max(&self.board, 4, &mut best_move);
-                nega_max_ab(&self.board, 5, -32767, 32767, &mut best_move);
+                nega_max_ab(&self.board, 7, &mut best_move);
                 if best_move.0 == -1 { println!("gg!"); } else {
                     play_move(best_move.0, best_move.1, &mut self.board);
                 }
