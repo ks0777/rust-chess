@@ -1,4 +1,9 @@
 use std::vec::Vec;
+use std::collections::HashMap;
+use std::collections::hash_map::DefaultHasher;
+use std::time::SystemTime;
+use std::hash::{Hash, Hasher};
+
 
 use crate::models::{FigureType, FigureColor, Field, Board};
 
@@ -323,11 +328,29 @@ pub fn nega_max(board: &Board, depth: u8, best_move: &mut (i8, (i8, FigureType))
     return max;
 }
 
-pub fn nega_max_ab(board: &Board, depth: u8, best_move: &mut (i8, (i8, FigureType))) -> i32 {
-    nega_max_ab_rec(board, depth, depth, -32767, 32767, best_move)
+struct PositionDescription {
+    score: i32,
+    search_depth: u8
 }
 
-pub fn nega_max_ab_rec(board: &Board, depth: u8, max_depth: u8, alpha: i32, beta: i32, best_move: &mut (i8, (i8, FigureType))) -> i32 {
+fn calculate_hash<T: Hash>(t: &T) -> u64 {
+    let mut s = DefaultHasher::new();
+    t.hash(&mut s);
+    s.finish()
+}
+
+pub fn nega_max_ab(board: &Board, depth: u8, best_move: &mut (i8, (i8, FigureType))) -> i32 {
+    let mut transposition_table: HashMap<u64, PositionDescription> = HashMap::new();
+    let sys_time = SystemTime::now();
+    let res = nega_max_ab_rec(board, &mut transposition_table, depth, depth, -32767, 32767, best_move);
+    println!("{}ms", sys_time.elapsed().unwrap().as_millis());
+
+    return res;
+}
+
+
+
+fn nega_max_ab_rec(board: &Board, transposition_table: &mut HashMap<u64, PositionDescription>, depth: u8, max_depth: u8, alpha: i32, beta: i32, best_move: &mut (i8, (i8, FigureType))) -> i32 {
     if depth == 0 { return evaluate_position(board); }
 
     let mut max = alpha;
@@ -341,9 +364,24 @@ pub fn nega_max_ab_rec(board: &Board, depth: u8, max_depth: u8, alpha: i32, beta
             for m in legal_moves {
                 let mut board_cpy = board.clone();
                 play_move(index as i8, m, &mut board_cpy);
-                let mut score = -nega_max_ab_rec(&board_cpy, depth-1, max_depth, -beta, -max, best_move);
+                let mut score = 0;
+                let mut position_found = false;
 
-                if depth % 2 == 0 { score += 1; } else { score -= 1; } 
+                let hash = calculate_hash(&board_cpy);
+                if transposition_table.contains_key(&hash) {
+                    let position_desc = &transposition_table[&hash];
+                        if position_desc.search_depth >= depth {
+                        score = position_desc.score;
+                        position_found = true;
+                    }
+                }
+
+                if !position_found {
+                    score = -nega_max_ab_rec(&board_cpy, transposition_table, depth-1, max_depth, -beta, -max, best_move);
+                    if depth % 2 == 0 { score += 1; } else { score -= 1; } 
+                    transposition_table.insert(hash, PositionDescription { score: score, search_depth: depth });
+                }
+
 
                 if score > max {
                     max = score;
