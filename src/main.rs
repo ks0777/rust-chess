@@ -5,6 +5,7 @@ use ggez::input;
 use mint::{Point2, Vector2};
 use std::vec::Vec;
 use std::env;
+use std::collections::HashMap;
 
 mod engine;
 use engine::calc_legal_moves;
@@ -14,7 +15,7 @@ use engine::nega_max;
 use engine::nega_max_ab;
 
 mod models;
-use models::{Figure, FigureType, FigureColor, Board};
+use models::{Figure, FigureType, FigureColor, Board, PositionDescription};
 
 mod utils;
 use utils::board_from_fen;
@@ -35,6 +36,7 @@ struct State {
     source_field_index: i8,
     legal_moves: Vec<(i8, FigureType)>,
     promo_state: PromotionState,
+    transposition_table: HashMap<u64, PositionDescription>,
 }
 
 impl State {
@@ -73,6 +75,7 @@ impl State {
             source_field_index: -1,
             legal_moves: Vec::new(),
             promo_state: PromotionState { src_index: -1, dst_index: -1, show_menu: false, figure_type: FigureType::NONE },
+            transposition_table: HashMap::new(),
         };
         Ok(s)
     }
@@ -226,7 +229,7 @@ impl ggez::event::EventHandler<GameError> for State {
                 play_move(self.source_field_index, *selected_move[0], &mut self.board);
                 let mut best_move = (-1, (-1, FigureType::NONE));
                 //nega_max(&self.board, 4, &mut best_move);
-                nega_max_ab(&self.board, 7, &mut best_move);
+                nega_max_ab(&self.board, &mut self.transposition_table, 7, &mut best_move);
                 if best_move.0 == -1 { println!("gg!"); } else {
                     play_move(best_move.0, best_move.1, &mut self.board);
                 }
@@ -254,7 +257,7 @@ impl ggez::event::EventHandler<GameError> for State {
                 play_move(self.promo_state.src_index, (self.promo_state.dst_index, self.promo_state.figure_type), &mut self.board);
                 let mut best_move = (-1, (-1, FigureType::NONE));
                 //nega_max(&self.board, 4, &mut best_move);
-                nega_max_ab(&self.board, 7, &mut best_move);
+                nega_max_ab(&self.board, &mut self.transposition_table, 7, &mut best_move);
                 if best_move.0 == -1 { println!("gg!"); } else {
                     play_move(best_move.0, best_move.1, &mut self.board);
                 }

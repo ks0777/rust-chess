@@ -46,3 +46,9 @@ pub struct Board {
     pub castle_rights: CastleRights,
     pub en_passant: i8
 }
+
+pub struct PositionDescription {
+    pub score: i32,
+    pub search_depth: u8
+}
+

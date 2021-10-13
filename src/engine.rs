@@ -5,7 +5,7 @@ use std::time::SystemTime;
 use std::hash::{Hash, Hasher};
 
 
-use crate::models::{FigureType, FigureColor, Field, Board};
+use crate::models::{FigureType, FigureColor, Field, Board, PositionDescription};
 
 fn is_occupied(x: i8, y: i8, board: &Board) -> FigureColor {
     board.fields[(x + y*8) as usize].figure_color
@@ -328,21 +328,15 @@ pub fn nega_max(board: &Board, depth: u8, best_move: &mut (i8, (i8, FigureType))
     return max;
 }
 
-struct PositionDescription {
-    score: i32,
-    search_depth: u8
-}
-
 fn calculate_hash<T: Hash>(t: &T) -> u64 {
     let mut s = DefaultHasher::new();
     t.hash(&mut s);
     s.finish()
 }
 
-pub fn nega_max_ab(board: &Board, depth: u8, best_move: &mut (i8, (i8, FigureType))) -> i32 {
-    let mut transposition_table: HashMap<u64, PositionDescription> = HashMap::new();
+pub fn nega_max_ab(board: &Board, transposition_table: &mut HashMap<u64, PositionDescription>, depth: u8, best_move: &mut (i8, (i8, FigureType))) -> i32 {
     let sys_time = SystemTime::now();
-    let res = nega_max_ab_rec(board, &mut transposition_table, depth, depth, -32767, 32767, best_move);
+    let res = nega_max_ab_rec(board, transposition_table, depth, depth, -32767, 32767, best_move);
     println!("{}ms", sys_time.elapsed().unwrap().as_millis());
 
     return res;
